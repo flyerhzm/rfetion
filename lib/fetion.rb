@@ -3,6 +3,7 @@ require 'uuid'
 require 'net/http'
 require 'net/https'
 require 'rexml/document'
+require 'digest/sha1'
 
 class Fetion
   include REXML
@@ -68,16 +69,15 @@ class Fetion
   def http_register
     nonce_regex = /nonce="(\w+)"/
     ok_regex = /OK/
-    arg = '<args><device type="PC" version="44" client-version="3.2.0540" />'
-    arg += '<caps value="simple-im;im-session;temp-group;personal-group" />'
-    arg += '<events value="contact;permission;system-message;personal-group" />'
-    arg += '<user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
+    arg = '<args><device type="PC" version="44" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
     call = next_call
     curl_exec(next_url, @ssic, FETION_SIPP)
+
     msg = sip_create("R fetion.com.cn SIP-C/2.0", {'F' => @sid, 'I' => call, 'Q' => '1 R'}, arg) + FETION_SIPP
     puts msg
     curl_exec(next_url('i'), @ssic, msg)
+
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     puts response.body
     unless response.body =~ nonce_regex
@@ -85,6 +85,17 @@ class Fetion
       return false
     end
     @nonce = $1
+    @salt =  "777A6D03"
+    @cnonce = calc_cnonce
+    @response = calc_response
+    puts "nonce: #{@nonce}"
+    puts "salt: #{@salt}"
+    puts "cnonce: #{@cnonce}"
+    puts "response: #{@response}"
+
+    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => @call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"@response\",cnonce=\"@cnonce\",salt=\"@salt\""}, arg) + FETION_SIPP
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    response.is_a? HTTPSuccess
   end
 
   def curl_exec(url, ssic, body)
@@ -100,6 +111,27 @@ class Fetion
     fields.each {|k, v| sip += "#{k}: #{v}\r\n"}
     sip += "L: #{arg.size}\r\n\r\n#{arg}"
     sip
+  end
+
+  def calc_response
+    hash_passowrd = hash_password
+    str = [hash_password[8..-1]].pack("H*")
+    key = Digest::SHA1.digest("#{@sid}:#{@domain}:@{str}")
+
+    h1 = Digest::MD5.hexdigest("#{key}:#{@nonce}:#{@cnonce}").upcase
+    h2 = Digest::MD5.hexdigest("REGISTER:#{@sid}").upcase
+    
+    Digest::MD5.hexdigest("#{h1}:#{@nonce}:#{h2}").upcase
+  end
+
+  def calc_cnonce
+    Digest::MD5.hexdigest(UUID.new.generate).upcase
+  end
+
+  def hash_password
+    salt = "#{0x77.chr}#{0x7A.chr}#{0x6D.chr}#{0x03.chr}"
+    src = salt + Digest::SHA1.digest(@password)
+    '777A6D03' + Digest::SHA1.hexdigest(src).upcase
   end
 
   def next_url(t = 's')
