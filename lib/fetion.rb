@@ -19,8 +19,6 @@ class Fetion
   def login
     ssic_regex = /ssic=(.*);/
     sid_regex = /sip:(\d+)@(.+);/s
-    cookie_file = "#{Time.now.strftime("%Y%m%d%H%M%S")}_cookie.text"
-    return_val = false
 
     uri = URI.parse(FETION_LOGIN_URL + "?mobileno=#{@user_mobile}&pwd=#{@password}")
     http = Net::HTTP.new(uri.host, uri.port)
@@ -48,12 +46,18 @@ class Fetion
     @uri = user.attributes['uri']
     @mobile_no = user.attributes['mobile-no']
     @user_id = user.attributes['user-id']
+    if @uri =~ sid_regex
+      @sid = $1
+      @domain = $2
+    end
     puts @ssic
     puts @status_code
     puts @user_status
     puts @uri
     puts @mobile_no
     puts @user_id
+    puts @sid
+    puts @domain
   end
 end
 
