@@ -6,8 +6,6 @@ require 'rexml/document'
 require 'digest/sha1'
 
 class Fetion
-  include REXML
-
   attr_accessor :user_mobile, :password, :sendto_sid, :content
   attr_accessor :fetion_proxy, :fetion_debug
 
@@ -20,6 +18,7 @@ class Fetion
   def initialize
     @next_call = 0
     @seq = 0
+    @buddies = []
   end
 
   def login
@@ -44,7 +43,7 @@ class Fetion
     end
 
     @ssic = $1
-    doc = Document.new(response.body)
+    doc = REXML::Document.new(response.body)
     results = doc.root
     @status_code = results.attributes["status-code"]
     user = results.children.first
@@ -56,30 +55,28 @@ class Fetion
       @sid = $1
       @domain = $2
     end
-    puts @ssic
-    puts @status_code
-    puts @user_status
-    puts @uri
-    puts @mobile_no
-    puts @user_id
-    puts @sid
-    puts @domain
+    puts "ssic: " + @ssic
+    puts "status_code: " + @status_code
+    puts "user_status: " + @user_status
+    puts "uri: " + @uri
+    puts "mobile_no: " + @mobile_no
+    puts "user_id: " + @user_id
+    puts "sid: " + @sid
+    puts "domain: " + @domain
   end
 
   def http_register
     nonce_regex = /nonce="(\w+)"/
-    ok_regex = /OK/
     arg = '<args><device type="PC" version="44" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
     call = next_call
-    curl_exec(next_url, @ssic, FETION_SIPP)
+    puts "first: " + curl_exec(next_url, @ssic, FETION_SIPP).body
 
     msg = sip_create("R fetion.com.cn SIP-C/2.0", {'F' => @sid, 'I' => call, 'Q' => '1 R'}, arg) + FETION_SIPP
-    puts msg
-    curl_exec(next_url('i'), @ssic, msg)
+    puts "second: " + curl_exec(next_url('i'), @ssic, msg).body
 
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-    puts response.body
+    puts "third: " + response.body
     unless response.body =~ nonce_regex
       puts "Fetion Error: no nonce found"
       return false
@@ -93,9 +90,30 @@ class Fetion
     puts "cnonce: #{@cnonce}"
     puts "response: #{@response}"
 
-    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => @call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"@response\",cnonce=\"@cnonce\",salt=\"@salt\""}, arg) + FETION_SIPP
+    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@response}\",cnonce=\"#{@cnonce}\",salt=\"#{@salt}\""}, arg) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-    response.is_a? HTTPSuccess
+    response.is_a? Net::HTTPSuccess
+  end
+
+  def get_buddy_list
+    buddy_regex = /.*?\r\n\r\n(.*)#{FETION_SIPP}\s*$/i
+    arg = '<args><contacts><buddy-lists /><buddies attributes="all" /><mobile-buddies attributes="all" /><chat-friends /><blacklist /></contacts></args>'
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactList'}, arg) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    unless response.body =~ buddy_regex
+      puts "Fetion Error: No buddy list found"
+      return false
+    end
+    doc = REXML::Document.new($1)
+    doc.elements.each("//buddies/buddy") do |buddy|
+      @buddies << buddy.attributes
+    end
+    doc.elements.each("//mobile-buddies/mobile-buddy") do |buddy|
+      @buddies << buddy.attributes
+    end
+    puts @buddies.inspect
   end
 
   def curl_exec(url, ssic, body)
@@ -114,12 +132,18 @@ class Fetion
   end
 
   def calc_response
-    hash_passowrd = hash_password
+    puts "hash_password: " + hash_password
     str = [hash_password[8..-1]].pack("H*")
-    key = Digest::SHA1.digest("#{@sid}:#{@domain}:@{str}")
+    puts "str: " + str
+    puts "#{@sid}:#{@domain}:#{str}"
+    key = Digest::SHA1.digest("#{@sid}:#{@domain}:#{str}")
+    puts "key: " + key
 
+    puts "#{key}:#{@nonce}:#{@cnonce}"
     h1 = Digest::MD5.hexdigest("#{key}:#{@nonce}:#{@cnonce}").upcase
+    puts "h1: " + h1
     h2 = Digest::MD5.hexdigest("REGISTER:#{@sid}").upcase
+    puts "h2: " + h2
     
     Digest::MD5.hexdigest("#{h1}:#{@nonce}:#{h2}").upcase
   end
