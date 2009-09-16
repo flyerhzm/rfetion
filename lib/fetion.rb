@@ -16,6 +16,11 @@ class Fetion
   FETION_SIPP = 'SIPP'
   GUID = UUID.new.generate
 
+  def initialize
+    @next_call = 0
+    @seq = 0
+  end
+
   def login
     ssic_regex = /ssic=(.*);/
     sid_regex = /sip:(\d+)@(.+);/s
@@ -58,6 +63,53 @@ class Fetion
     puts @user_id
     puts @sid
     puts @domain
+  end
+
+  def http_register
+    nonce_regex = /nonce="(\w+)"/
+    ok_regex = /OK/
+    arg = '<args><device type="PC" version="44" client-version="3.2.0540" />'
+    arg += '<caps value="simple-im;im-session;temp-group;personal-group" />'
+    arg += '<events value="contact;permission;system-message;personal-group" />'
+    arg += '<user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
+
+    call = next_call
+    curl_exec(next_url, @ssic, FETION_SIPP)
+    msg = sip_create("R fetion.com.cn SIP-C/2.0", {'F' => @sid, 'I' => call, 'Q' => '1 R'}, arg) + FETION_SIPP
+    puts msg
+    curl_exec(next_url('i'), @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    puts response.body
+    unless response.body =~ nonce_regex
+      puts "Fetion Error: no nonce found"
+      return false
+    end
+    @nonce = $1
+  end
+
+  def curl_exec(url, ssic, body)
+    uri = URI.parse(url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{GUID}", 'User-Agent' => 'IIC2.0/PC 3.2.0540', 'Cookie' => "ssic=#{@ssic}"}
+    response = http.request_post(uri.request_uri, body, headers)
+    response
+  end
+
+  def sip_create(invite, fields, arg)
+    sip = invite + "\r\n"
+    fields.each {|k, v| sip += "#{k}: #{v}\r\n"}
+    sip += "L: #{arg.size}\r\n\r\n#{arg}"
+    sip
+  end
+
+  def next_url(t = 's')
+    @seq += 1
+    FETION_URL + "?t=#{t}&i=#{@seq}"
+  end
+
+  def next_call
+    @next_call += 1
+    @next_call
   end
 end
 
