@@ -3,7 +3,7 @@ end
 
 class Fetion
   attr_accessor :mobile_no, :password
-  attr_reader :uri
+  attr_reader :uri, :contacts
 
   FETION_URL = 'http://221.130.44.194/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://nav.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
@@ -24,21 +24,27 @@ class Fetion
     @logger.level = level
   end
 
-  def send_sms_to_self(content)
-    login
-    register
-    send_sms(@uri, content)
+  def Fetion.send_sms_to_self(mobile_no, password, content)
+    fetion = Fetion.new
+    fetion.mobile_no = mobile_no
+    fetion.password = password
+    fetion.login
+    fetion.register
+    fetion.send_sms(fetion.uri, content)
   end
 
-  def send_sms_to_friends(mobiles, content)
-    mobiles = Array(mobiles)
-    login
-    register
-    get_buddy_list
-    get_contacts_info
-    @contacts.each do |contact|
-      if mobiles.include? contact[:mobile_no].to_i
-        send_sms(contact[:sip], content)
+  def Fetion.send_sms_to_friends(mobile_no, password, friend_mobiles, content)
+    friend_mobiles = Array(friend_mobiles)
+    fetion = Fetion.new
+    fetion.mobile_no = mobile_no
+    fetion.password = password
+    fetion.login
+    fetion.register
+    fetion.get_buddy_list
+    fetion.get_contacts_info
+    fetion.contacts.each do |contact|
+      if friend_mobiles.include? contact[:mobile_no].to_i
+        fetion.send_sms(contact[:sip], content)
       end
     end
   end
