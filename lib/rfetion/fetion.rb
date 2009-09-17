@@ -1,11 +1,3 @@
-require 'rubygems'
-require 'uuid'
-require 'net/http'
-require 'net/https'
-require 'rexml/document'
-require 'digest/sha1'
-require 'logger'
-
 class FetionException < Exception
 end
 
