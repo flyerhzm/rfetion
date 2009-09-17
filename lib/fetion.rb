@@ -31,6 +31,12 @@ class Fetion
     @logger.level = level
   end
 
+  def send_sms_to_self(content)
+    login
+    register
+    send_sms(@uri, content)
+  end
+
   def login
     @logger.info "fetion login"
     uri = URI.parse(FETION_LOGIN_URL + "?mobileno=#{@mobile_no}&pwd=#{@password}")
