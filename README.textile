@@ -8,6 +8,7 @@ h2. Install
 
 <pre><code>
 gem sources -a http://gems.github.com
+gem install uuid
 gem install flyerhzm-rfetion
 </code></pre>
 
