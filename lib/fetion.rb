@@ -10,7 +10,7 @@ class FetionException < Exception
 end
 
 class Fetion
-  attr_accessor :user_mobile, :password
+  attr_accessor :mobile_no, :password
   attr_reader :uri
 
   FETION_URL = 'http://221.130.44.194/ht/sd.aspx'
@@ -24,6 +24,7 @@ class Fetion
     @seq = 0
     @buddies = []
     @logger = Logger.new(STDOUT)
+    @logger.level = Logger::INFO
   end
   
   def logger_level=(level)
@@ -31,7 +32,8 @@ class Fetion
   end
 
   def login
-    uri = URI.parse(FETION_LOGIN_URL + "?mobileno=#{@user_mobile}&pwd=#{@password}")
+    @logger.info "fetion login"
+    uri = URI.parse(FETION_LOGIN_URL + "?mobileno=#{@mobile_no}&pwd=#{@password}")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -62,49 +64,48 @@ class Fetion
     @logger.debug "user_id: " + @user_id
     @logger.debug "sid: " + @sid
     @logger.debug "domain: " + @domain
+    @logger.info "fetion login success"
   end
 
-  def http_register
-    nonce_regex = /nonce="(\w+)"/
+  def register
+    @logger.info "fetion http register"
     arg = '<args><device type="PC" version="44" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
     call = next_call
-    puts "first: " + curl_exec(next_url, @ssic, FETION_SIPP).body
+    curl_exec(next_url, @ssic, FETION_SIPP)
 
     msg = sip_create("R fetion.com.cn SIP-C/2.0", {'F' => @sid, 'I' => call, 'Q' => '1 R'}, arg) + FETION_SIPP
-    puts "second: " + curl_exec(next_url('i'), @ssic, msg).body
+    curl_exec(next_url('i'), @ssic, msg)
 
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-    puts "third: " + response.body
-    unless response.body =~ nonce_regex
-      puts "Fetion Error: no nonce found"
-      return false
-    end
+    raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(\w+)"/
+      
     @nonce = $1
     @salt =  "777A6D03"
     @cnonce = calc_cnonce
     @response = calc_response
-    puts "nonce: #{@nonce}"
-    puts "salt: #{@salt}"
-    puts "cnonce: #{@cnonce}"
-    puts "response: #{@response}"
+
+    @logger.debug "nonce: #{@nonce}"
+    @logger.debug "salt: #{@salt}"
+    @logger.debug "cnonce: #{@cnonce}"
+    @logger.debug "response: #{@response}"
 
     msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@response}\",cnonce=\"#{@cnonce}\",salt=\"#{@salt}\""}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
+
+    @logger.info "fetion http register success"
     response.is_a? Net::HTTPSuccess
   end
 
   def get_buddy_list
-    buddy_regex = /.*?\r\n\r\n(.*)#{FETION_SIPP}\s*$/i
+    @logger.info "fetion get buddy list"
     arg = '<args><contacts><buddy-lists /><buddies attributes="all" /><mobile-buddies attributes="all" /><chat-friends /><blacklist /></contacts></args>'
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactList'}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-    unless response.body =~ buddy_regex
-      puts "Fetion Error: No buddy list found"
-      return false
-    end
+    raise FetionException.new("Fetion Error: No buddy list found") unless response.body =~ /.*?\r\n\r\n(.*)#{FETION_SIPP}\s*$/i
+
     doc = REXML::Document.new($1)
     doc.elements.each("//buddies/buddy") do |buddy|
       @buddies << buddy.attributes
@@ -112,28 +113,33 @@ class Fetion
     doc.elements.each("//mobile-buddies/mobile-buddy") do |buddy|
       @buddies << buddy.attributes
     end
-    puts @buddies.inspect
+    @logger.info @buddies.inspect
+    @logger.info "fetion get buddy list success"
   end
 
-  def http_send_sms(to, content)
+  def send_sms(to, content)
+    @logger.info "fetion send sms to #{to}"
     msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => to, 'N' => 'SendSMS'}, content) + FETION_SIPP
-    puts msg
-    response = curl_exec(next_url, @ssic, msg)
-    puts "======================="
-    puts response.inspect
-    puts response.body
+    curl_exec(next_url, @ssic, msg)
+
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-    puts "======================="
-    puts response.inspect
-    puts response.body
+    @logger.info "fetion send sms to #{to} success"
     response.is_a? Net::HTTPSuccess
   end
 
   def curl_exec(url, ssic, body)
+    @logger.debug "fetion curl exec"
+    @logger.debug "url: #{url}"
+    @logger.debug "ssic: #{ssic}"
+    @logger.debug "body: #{body}"
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
     headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{GUID}", 'User-Agent' => 'IIC2.0/PC 3.2.0540', 'Cookie' => "ssic=#{@ssic}"}
     response = http.request_post(uri.request_uri, body, headers)
+
+    @logger.debug "response: #{response.inspect}"
+    @logger.debug "response body: #{response.body}"
+    @logger.debug "fetion curl exec complete"
     response
   end
 
@@ -141,22 +147,16 @@ class Fetion
     sip = invite + "\r\n"
     fields.each {|k, v| sip += "#{k}: #{v}\r\n"}
     sip += "L: #{arg.size}\r\n\r\n#{arg}"
+    @logger.debug "sip message: #{sip}"
     sip
   end
 
   def calc_response
-    puts "hash_password: " + hash_password
     str = [hash_password[8..-1]].pack("H*")
-    puts "str: " + str
-    puts "#{@sid}:#{@domain}:#{str}"
     key = Digest::SHA1.digest("#{@sid}:#{@domain}:#{str}")
-    puts "key: " + key
 
-    puts "#{key}:#{@nonce}:#{@cnonce}"
     h1 = Digest::MD5.hexdigest("#{key}:#{@nonce}:#{@cnonce}").upcase
-    puts "h1: " + h1
     h2 = Digest::MD5.hexdigest("REGISTER:#{@sid}").upcase
-    puts "h2: " + h2
     
     Digest::MD5.hexdigest("#{h1}:#{@nonce}:#{h2}").upcase
   end
