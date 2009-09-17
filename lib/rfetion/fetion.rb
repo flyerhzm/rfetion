@@ -10,6 +10,7 @@ class Fetion
   FETION_CONFIG_URL = 'http://nav.fetion.com.cn/nav/getsystemconfig.aspx'
   FETION_SIPP = 'SIPP'
   GUID = UUID.new.generate
+  @@nonce = nil
 
   def initialize
     @next_call = 0
@@ -96,19 +97,21 @@ class Fetion
     curl_exec(next_url('i'), @ssic, msg)
 
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-    raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(\w+)"/
+    unless @@nonce
+      raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(\w+)"/
+    end
       
-    @nonce = $1
-    @salt =  "777A6D03"
-    @cnonce = calc_cnonce
-    @response = calc_response
+    @@nonce = $1
+    @@salt =  "777A6D03"
+    @@cnonce = calc_cnonce
+    @@response = calc_response
 
-    @logger.debug "nonce: #{@nonce}"
-    @logger.debug "salt: #{@salt}"
-    @logger.debug "cnonce: #{@cnonce}"
-    @logger.debug "response: #{@response}"
+    @logger.debug "nonce: #{@@nonce}"
+    @logger.debug "salt: #{@@salt}"
+    @logger.debug "cnonce: #{@@cnonce}"
+    @logger.debug "response: #{@@response}"
 
-    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@response}\",cnonce=\"#{@cnonce}\",salt=\"#{@salt}\""}, arg) + FETION_SIPP
+    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@@response}\",cnonce=\"#{@@cnonce}\",salt=\"#{@@salt}\""}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
@@ -187,10 +190,10 @@ class Fetion
     str = [hash_password[8..-1]].pack("H*")
     key = Digest::SHA1.digest("#{@sid}:#{@domain}:#{str}")
 
-    h1 = Digest::MD5.hexdigest("#{key}:#{@nonce}:#{@cnonce}").upcase
+    h1 = Digest::MD5.hexdigest("#{key}:#{@@nonce}:#{@@cnonce}").upcase
     h2 = Digest::MD5.hexdigest("REGISTER:#{@sid}").upcase
     
-    Digest::MD5.hexdigest("#{h1}:#{@nonce}:#{h2}").upcase
+    Digest::MD5.hexdigest("#{h1}:#{@@nonce}:#{h2}").upcase
   end
 
   def calc_cnonce
