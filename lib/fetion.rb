@@ -23,6 +23,7 @@ class Fetion
     @next_call = 0
     @seq = 0
     @buddies = []
+    @contacts = []
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
   end
@@ -35,6 +36,19 @@ class Fetion
     login
     register
     send_sms(@uri, content)
+  end
+
+  def send_sms_to_friends(mobiles, content)
+    mobiles = Array(mobiles)
+    login
+    register
+    get_buddy_list
+    get_contacts_info
+    @contacts.each do |contact|
+      if mobiles.include? contact[:mobile_no].to_i
+        send_sms(contact[:sip], content)
+      end
+    end
   end
 
   def login
@@ -112,15 +126,29 @@ class Fetion
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: No buddy list found") unless response.body =~ /.*?\r\n\r\n(.*)#{FETION_SIPP}\s*$/i
 
-    doc = REXML::Document.new($1)
-    doc.elements.each("//buddies/buddy") do |buddy|
-      @buddies << buddy.attributes
+    response.body.scan(/uri="([^"]+)"/).each do |buddy|
+      @buddies << {:uri => buddy[0]}
     end
-    doc.elements.each("//mobile-buddies/mobile-buddy") do |buddy|
-      @buddies << buddy.attributes
-    end
-    @logger.info @buddies.inspect
+    @logger.debug @buddies.inspect
     @logger.info "fetion get buddy list success"
+  end
+
+  def get_contacts_info
+    @logger.info "fetion get contacts info"
+    arg = '<args><contacts attributes="all">'
+    @buddies.each do |buddy|
+      arg += "<contact uri=\"#{buddy[:uri]}\" />"
+    end
+    arg += '</contacts></args>'
+
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactsInfo'}, arg) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    response.body.scan(/uri="([^"]+)".*?mobile-no="([^"]+)"/).each do |contact|
+      @contacts << {:sip => contact[0], :mobile_no => contact[1]}
+    end
+    @logger.debug @contacts.inspect
+    @logger.info "fetion get contacts info success"
   end
 
   def send_sms(to, content)
