@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rfetion}
-  s.version = "0.1.0"
+  s.version = "0.1.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Richard Huang"]
@@ -20,7 +20,8 @@ Gem::Specification.new do |s|
      "Rakefile",
      "VERSION",
      "lib/rfetion.rb",
-     "lib/rfetion/fetion.rb"
+     "lib/rfetion/fetion.rb",
+     "rfetion.gemspec"
   ]
   s.homepage = %q{}
   s.rdoc_options = ["--charset=UTF-8"]
