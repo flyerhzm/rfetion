@@ -1,0 +1,4 @@
+h1. rfetion
+
+rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.
+
