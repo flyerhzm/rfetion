@@ -6,8 +6,9 @@ require 'rexml/document'
 require 'digest/sha1'
 
 class Fetion
-  attr_accessor :user_mobile, :password, :sendto_sid, :content
+  attr_accessor :user_mobile, :password
   attr_accessor :fetion_proxy, :fetion_debug
+  attr_reader :sid
 
   FETION_URL = 'http://221.130.44.194/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://nav.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
@@ -114,6 +115,20 @@ class Fetion
       @buddies << buddy.attributes
     end
     puts @buddies.inspect
+  end
+
+  def http_send_sms(to, content)
+    msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => to, 'N' => 'SendSMS'}, content) + FETION_SIPP
+    puts msg
+    response = curl_exec(next_url, @ssic, msg)
+    puts "======================="
+    puts response.inspect
+    puts response.body
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    puts "======================="
+    puts response.inspect
+    puts response.body
+    response.is_a? Net::HTTPSuccess
   end
 
   def curl_exec(url, ssic, body)
