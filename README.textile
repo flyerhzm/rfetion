@@ -2,3 +2,25 @@ h1. rfetion
 
 rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.
 
+**************************************************************************
+
+h2. Install
+
+<pre><code>
+gem sources -a http://gems.github.com
+gem install flyerhzm-rfetion
+</code></pre>
+
+**************************************************************************
+
+h2. Usage
+
+send sms to yourself
+<pre><code>
+Fetion.send_sms_to_self(mobile_no, password, content)
+</code></pre>
+
+send sms to friends
+<pre><code>
+Fetion.send_sms_to_friends(mobile_no, password, friend_mobile_no or array of friends_mobile_no, content)
+</code></pre>
