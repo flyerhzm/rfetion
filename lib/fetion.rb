@@ -4,11 +4,14 @@ require 'net/http'
 require 'net/https'
 require 'rexml/document'
 require 'digest/sha1'
+require 'logger'
+
+class FetionException < Exception
+end
 
 class Fetion
   attr_accessor :user_mobile, :password
-  attr_accessor :fetion_proxy, :fetion_debug
-  attr_reader :sid
+  attr_reader :uri
 
   FETION_URL = 'http://221.130.44.194/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://nav.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
@@ -20,12 +23,14 @@ class Fetion
     @next_call = 0
     @seq = 0
     @buddies = []
+    @logger = Logger.new(STDOUT)
+  end
+  
+  def logger_level=(level)
+    @logger.level = level
   end
 
   def login
-    ssic_regex = /ssic=(.*);/
-    sid_regex = /sip:(\d+)@(.+);/s
-
     uri = URI.parse(FETION_LOGIN_URL + "?mobileno=#{@user_mobile}&pwd=#{@password}")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
@@ -33,15 +38,8 @@ class Fetion
     headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{GUID}", 'User-Agent' => 'IIC2.0/PC 3.2.0540'}
     response = http.request_get(uri.request_uri, headers)
 
-    unless response.is_a? Net::HTTPSuccess
-      puts "login failed"
-      return false
-    end
-
-    unless response['set-cookie'] =~ ssic_regex
-      puts "Fetion Error: No ssic found in cookie"
-      return false
-    end
+    raise FetionException.new('Fetion Error: Login failed.') unless response.is_a? Net::HTTPSuccess
+    raise FetionException.new('Fetion Error: No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/
 
     @ssic = $1
     doc = REXML::Document.new(response.body)
@@ -52,18 +50,18 @@ class Fetion
     @uri = user.attributes['uri']
     @mobile_no = user.attributes['mobile-no']
     @user_id = user.attributes['user-id']
-    if @uri =~ sid_regex
+    if @uri =~ /sip:(\d+)@(.+);/
       @sid = $1
       @domain = $2
     end
-    puts "ssic: " + @ssic
-    puts "status_code: " + @status_code
-    puts "user_status: " + @user_status
-    puts "uri: " + @uri
-    puts "mobile_no: " + @mobile_no
-    puts "user_id: " + @user_id
-    puts "sid: " + @sid
-    puts "domain: " + @domain
+    @logger.debug "ssic: " + @ssic
+    @logger.debug "status_code: " + @status_code
+    @logger.debug "user_status: " + @user_status
+    @logger.debug "uri: " + @uri
+    @logger.debug "mobile_no: " + @mobile_no
+    @logger.debug "user_id: " + @user_id
+    @logger.debug "sid: " + @sid
+    @logger.debug "domain: " + @domain
   end
 
   def http_register
