@@ -99,9 +99,9 @@ class Fetion
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     unless @@nonce
       raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(\w+)"/
+      @@nonce = $1
     end
       
-    @@nonce = $1
     @@salt =  "777A6D03"
     @@cnonce = calc_cnonce
     @@response = calc_response
