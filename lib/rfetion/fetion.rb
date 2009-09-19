@@ -10,7 +10,7 @@ class Fetion
   FETION_CONFIG_URL = 'http://nav.fetion.com.cn/nav/getsystemconfig.aspx'
   FETION_SIPP = 'SIPP'
   GUID = UUID.new.generate
-  @@nonce = nil
+  @nonce = nil
 
   def initialize
     @next_call = 0
@@ -32,6 +32,7 @@ class Fetion
     fetion.login
     fetion.register
     fetion.send_sms(fetion.uri, content)
+    fetion.logout
   end
 
   def Fetion.send_sms_to_friends(mobile_no, password, friend_mobiles, content)
@@ -48,6 +49,7 @@ class Fetion
         fetion.send_sms(contact[:sip], content)
       end
     end
+    fetion.logout
   end
 
   def login
@@ -97,21 +99,19 @@ class Fetion
     curl_exec(next_url('i'), @ssic, msg)
 
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-    unless @@nonce
-      raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(\w+)"/
-      @@nonce = $1
-    end
+    raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(\w+)"/
       
-    @@salt =  "777A6D03"
-    @@cnonce = calc_cnonce
-    @@response = calc_response
+    @nonce = $1
+    @salt =  "777A6D03"
+    @cnonce = calc_cnonce
+    @response = calc_response
 
-    @logger.debug "nonce: #{@@nonce}"
-    @logger.debug "salt: #{@@salt}"
-    @logger.debug "cnonce: #{@@cnonce}"
-    @logger.debug "response: #{@@response}"
+    @logger.debug "nonce: #{@nonce}"
+    @logger.debug "salt: #{@salt}"
+    @logger.debug "cnonce: #{@cnonce}"
+    @logger.debug "response: #{@response}"
 
-    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@@response}\",cnonce=\"#{@@cnonce}\",salt=\"#{@@salt}\""}, arg) + FETION_SIPP
+    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@response}\",cnonce=\"#{@cnonce}\",salt=\"#{@salt}\""}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
@@ -162,6 +162,14 @@ class Fetion
     response.is_a? Net::HTTPSuccess
   end
 
+  def logout
+    @logger.info "fetion logout"
+    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '2 R', 'X' => 0}, '') + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    @logger.info "fetion logout success"
+  end
+
   def curl_exec(url, ssic, body)
     @logger.debug "fetion curl exec"
     @logger.debug "url: #{url}"
@@ -190,10 +198,10 @@ class Fetion
     str = [hash_password[8..-1]].pack("H*")
     key = Digest::SHA1.digest("#{@sid}:#{@domain}:#{str}")
 
-    h1 = Digest::MD5.hexdigest("#{key}:#{@@nonce}:#{@@cnonce}").upcase
+    h1 = Digest::MD5.hexdigest("#{key}:#{@nonce}:#{@cnonce}").upcase
     h2 = Digest::MD5.hexdigest("REGISTER:#{@sid}").upcase
     
-    Digest::MD5.hexdigest("#{h1}:#{@@nonce}:#{h2}").upcase
+    Digest::MD5.hexdigest("#{h1}:#{@nonce}:#{h2}").upcase
   end
 
   def calc_cnonce
