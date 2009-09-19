@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rfetion}
-  s.version = "0.1.2"
+  s.version = "0.1.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Richard Huang"]
-  s.date = %q{2009-09-18}
+  s.date = %q{2009-09-19}
   s.description = %q{rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.}
   s.email = %q{flyerhzm@gmail.com}
   s.extra_rdoc_files = [
