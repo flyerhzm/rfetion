@@ -4,6 +4,12 @@ rfetion is a ruby gem for China Mobile fetion service that you can send SMS free
 
 **************************************************************************
 
+h2. Demo
+
+see "http://fetion.heroku.com":http://fetion.heroku.com
+
+**************************************************************************
+
 h2. Install
 
 <pre><code>
