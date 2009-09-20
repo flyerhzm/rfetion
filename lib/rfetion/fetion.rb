@@ -37,6 +37,7 @@ class Fetion
 
   def Fetion.send_sms_to_friends(mobile_no, password, friend_mobiles, content)
     friend_mobiles = Array(friend_mobiles)
+    friend_mobiles.collect! {|mobile| mobile.to_i}
     fetion = Fetion.new
     fetion.mobile_no = mobile_no
     fetion.password = password
