@@ -30,3 +30,19 @@ send sms to friends
 <pre><code>
 Fetion.send_sms_to_friends(mobile_no, password, friend_mobile_no or array of friends_mobile_no, content)
 </code></pre>
+
+**************************************************************************
+
+h2. Shell command
+
+you can use it in shell command directly
+
+<pre><code>
+rfetion -h
+
+Usage: rfetion [options]
+    -m, --mobile MOBILE              Fetion mobile number
+    -p, --password PASSWORD          Fetion password
+    -c, --content CONTENT            Fetion message content
+    -f, --friends MOBILE1,MOBILE2    (optional) Fetion friends mobile number, if no friends mobile number, send message to yourself
+</code></pre>
