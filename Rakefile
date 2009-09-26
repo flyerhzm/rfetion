@@ -9,4 +9,5 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.authors = ['Richard Huang']
   gemspec.files.exclude '.gitignore'
   gemspec.add_dependency 'uuid'
+  gemspec.executables << 'rfetion'
 end
