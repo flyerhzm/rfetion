@@ -5,13 +5,14 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rfetion}
-  s.version = "0.1.4"
+  s.version = "0.2.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Richard Huang"]
-  s.date = %q{2009-09-20}
+  s.date = %q{2009-09-26}
   s.description = %q{rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.}
   s.email = %q{flyerhzm@gmail.com}
+  s.executables = ["rfetion", "rfetion"]
   s.extra_rdoc_files = [
     "README.textile"
   ]
@@ -19,7 +20,9 @@ Gem::Specification.new do |s|
     "README.textile",
      "Rakefile",
      "VERSION",
+     "bin/rfetion",
      "lib/rfetion.rb",
+     "lib/rfetion/command.rb",
      "lib/rfetion/fetion.rb",
      "rfetion.gemspec"
   ]
