@@ -25,7 +25,6 @@ OptionParser.new do |opts|
 
   opts.parse!
 end
-puts options.inspect
 
 if options[:mobile_no] and options[:password] and options[:content]
   if options[:friends_mobile].empty?
