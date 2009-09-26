@@ -19,7 +19,7 @@ OptionParser.new do |opts|
   end
 
   options[:friends_mobile] = []
-  opts.on('-f', '--friends FRIEND1_MOBILE,FRIEND2_MOBILE', Array, 'Fetion friends mobile numbers') do |f|
+  opts.on('-f', '--friends MOBILE1,MOBILE2', Array, '(optional) Fetion friends mobile number, if no friends mobile number, send message to yourself') do |f|
     options[:friends_mobile] = f
   end
 
