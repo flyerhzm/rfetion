@@ -53,6 +53,16 @@ class Fetion
     fetion.logout
   end
 
+  def Fetion.add_buddy(mobile_no, password, friend_mobile)
+    fetion = Fetion.new
+    fetion.mobile_no = mobile_no
+    fetion.password = password
+    fetion.login
+    fetion.register
+    fetion.add_buddy(friend_mobile)
+    fetion.logout
+  end
+
   def login
     @logger.info "fetion login"
     uri = URI.parse(FETION_LOGIN_URL + "?mobileno=#{@mobile_no}&pwd=#{@password}")
