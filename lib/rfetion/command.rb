@@ -6,8 +6,8 @@ OptionParser.new do |opts|
   # Set a banner, displayed at the top of the help screen.
   opts.banner = <<EOF
   Usage: rfetion [options]
-  Example: rfetion -m mobile -p password -c sms_content
-           rfetion -m mobile -p password -a add_mobile
+  Example: rfetion -m mobile -p password -f friend_mobile -c sms_content
+           rfetion -m mobile -p password -a friend_mobile
 EOF
 
   opts.on('-m', '--mobile MOBILE', 'Fetion mobile number') do |mobile|
