@@ -13,8 +13,8 @@ see "http://fetion.heroku.com":http://fetion.heroku.com
 h2. Install
 
 <pre><code>
-gem sources -a http://gems.github.com
-gem install flyerhzm-rfetion
+gem sources -a http://gemcutter.org
+gem install rfetion
 </code></pre>
 
 **************************************************************************
@@ -46,8 +46,8 @@ you can use it in shell command directly
 rfetion -h
 
   Usage: rfetion [options]
-  Example: rfetion -m mobile -p password -c sms_content
-           rfetion -m mobile -p password -a add_mobile
+  Example: rfetion -m mobile -p password -f friend_mobile -c sms_content
+           rfetion -m mobile -p password -a friend_mobile
     -m, --mobile MOBILE              Fetion mobile number
     -p, --password PASSWORD          Fetion password
     -c, --content CONTENT            Fetion message content
