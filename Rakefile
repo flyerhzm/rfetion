@@ -11,3 +11,4 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.add_dependency 'uuid'
   gemspec.executables << 'rfetion'
 end
+Jeweler::GemcutterTasks.new
