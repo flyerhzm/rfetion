@@ -36,7 +36,7 @@ end
 
 if options[:add_mobile]
   if options[:mobile_no] and options[:password]
-    Fetion.add_buddy(options[:mobile_no], options[:password])
+    Fetion.add_buddy(options[:mobile_no], options[:password], options[:add_mobile])
   end
   return
 end
