@@ -4,7 +4,11 @@ options = {}
 
 OptionParser.new do |opts|
   # Set a banner, displayed at the top of the help screen.
-  opts.banner = "Usage: rfetion [options]"
+  opts.banner = <<EOF
+    Usage: rfetion [options]
+    Example: rfetion -m mobile -p password -c sms_content
+             rfetion -m mobile -p password -a add_mobile
+  EOF
 
   opts.on('-m', '--mobile MOBILE', 'Fetion mobile number') do |mobile|
     options[:mobile_no] = mobile
@@ -23,7 +27,18 @@ OptionParser.new do |opts|
     options[:friends_mobile] = f
   end
 
+  opts.on('-a', '--add_buddy MOBILE', 'Add friend mobile as fetion friend') do |f|
+    options[:add_mobile] = f
+  end
+
   opts.parse!
+end
+
+if options[:add_mobile]
+  if options[:mobile_no] and options[:password]
+    Fetion.add_buddy(options[:mobile_no], options[:password])
+  end
+  return
 end
 
 if options[:mobile_no] and options[:password] and options[:content]
