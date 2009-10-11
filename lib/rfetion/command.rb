@@ -38,13 +38,12 @@ if options[:add_mobile]
   if options[:mobile_no] and options[:password]
     Fetion.add_buddy(options[:mobile_no], options[:password], options[:add_mobile])
   end
-  return
-end
-
-if options[:mobile_no] and options[:password] and options[:content]
-  if options[:friends_mobile].empty?
-    Fetion.send_sms_to_self(options[:mobile_no], options[:password], options[:content])
-  else
-    Fetion.send_sms_to_friends(options[:mobile_no], options[:password], options[:friends_mobile], options[:content])
+else
+  if options[:mobile_no] and options[:password] and options[:content]
+    if options[:friends_mobile].empty?
+      Fetion.send_sms_to_self(options[:mobile_no], options[:password], options[:content])
+    else
+      Fetion.send_sms_to_friends(options[:mobile_no], options[:password], options[:friends_mobile], options[:content])
+    end
   end
 end
