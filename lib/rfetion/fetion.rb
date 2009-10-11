@@ -156,10 +156,19 @@ class Fetion
   def send_sms(to, content)
     @logger.info "fetion send sms to #{to}"
     msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => to, 'N' => 'SendSMS'}, content) + FETION_SIPP
-    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, msg)
 
-    response = curl_exec(next_url, @ssic, FETION_SIPP)
     @logger.info "fetion send sms to #{to} success"
+    response.is_a? Net::HTTPSuccess
+  end
+
+  def add_buddy(mobile, nickname = nil)
+    @logger.info "fetion send request to add #{mobile} as friend"
+    arg = %Q{<args><contacts><buddies><buddy uri="tel:#{mobile}" local-name="#{nickname}" buddy-lists="1" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddBuddy'}, arg) + FETION_SIPP
+    response = curl_exec(next_url, @ssic, msg)
+
+    @logger.info "fetion send request to add #{mobile} as friend success"
     response.is_a? Net::HTTPSuccess
   end
 
