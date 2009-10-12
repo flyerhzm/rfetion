@@ -34,16 +34,20 @@ EOF
   opts.parse!
 end
 
-if options[:add_mobile]
-  if options[:mobile_no] and options[:password]
+begin
+  if options[:add_mobile]
+    raise FetionException.new('You must input your mobile number and password') unless options[:mobile_no] and options[:password]
     Fetion.add_buddy(options[:mobile_no], options[:password], options[:add_mobile])
+    exit
   end
-else
-  if options[:mobile_no] and options[:password] and options[:content]
-    if options[:friends_mobile].empty?
-      Fetion.send_sms_to_self(options[:mobile_no], options[:password], options[:content])
-    else
-      Fetion.send_sms_to_friends(options[:mobile_no], options[:password], options[:friends_mobile], options[:content])
-    end
+  
+  raise FetionException.new('You must input your mobile number, password and content') unless options[:mobile_no] and options[:password] and options[:content]
+  if options[:friends_mobile].empty?
+    Fetion.send_sms_to_self(options[:mobile_no], options[:password], options[:content])
+  else
+    Fetion.send_sms_to_friends(options[:mobile_no], options[:password], options[:friends_mobile], options[:content])
   end
+rescue FetionException => e
+  puts e.message
+  puts "Please use 'rfetion -h' to get more details"
 end
