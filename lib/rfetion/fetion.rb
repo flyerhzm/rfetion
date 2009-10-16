@@ -25,8 +25,9 @@ class Fetion
     @logger.level = level
   end
 
-  def Fetion.send_sms_to_self(mobile_no, password, content)
+  def Fetion.send_sms_to_self(mobile_no, password, content, level = Logger::INFO)
     fetion = Fetion.new
+    fetion.logger_level = level
     fetion.mobile_no = mobile_no
     fetion.password = password
     fetion.login
@@ -35,10 +36,11 @@ class Fetion
     fetion.logout
   end
 
-  def Fetion.send_sms_to_friends(mobile_no, password, friend_mobiles, content)
+  def Fetion.send_sms_to_friends(mobile_no, password, friend_mobiles, content, level = Logger::INFO)
     friend_mobiles = Array(friend_mobiles)
     friend_mobiles.collect! {|mobile| mobile.to_i}
     fetion = Fetion.new
+    fetion.logger_level = level
     fetion.mobile_no = mobile_no
     fetion.password = password
     fetion.login
@@ -53,8 +55,9 @@ class Fetion
     fetion.logout
   end
 
-  def Fetion.add_buddy(mobile_no, password, friend_mobile)
+  def Fetion.add_buddy(mobile_no, password, friend_mobile, level = Logger::INFO)
     fetion = Fetion.new
+    fetion.logger_level = level
     fetion.mobile_no = mobile_no
     fetion.password = password
     fetion.login
