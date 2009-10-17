@@ -8,7 +8,7 @@ OptionParser.new do |opts|
 
   opts.separator ""
   opts.separator <<EOF
-    Example: rfetion -m mobile -p password -f friend_mobile -c sms_content
+    Example: rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content
              rfetion -m mobile -p password -a friend_mobile
 EOF
 
@@ -25,7 +25,7 @@ EOF
   end
 
   options[:friends] = []
-  opts.on('-f', '--friends MOBILE1 or FETION1, MOBILE2 or FETION2', Array, '(optional) Fetion friends mobile number or fetion number, if no friends mobile number and fetion number, send message to yourself') do |f|
+  opts.on('-f', '--friends MOBILE,FETION', Array, '(optional) Fetion friends mobile number or fetion number, if no friends mobile number and fetion number, send message to yourself') do |f|
     options[:friends] = f
   end
 
