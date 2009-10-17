@@ -36,9 +36,9 @@ class Fetion
     fetion.logout
   end
 
-  def Fetion.send_sms_to_friends(mobile_no, password, friend_mobiles, content, level = Logger::INFO)
-    friend_mobiles = Array(friend_mobiles)
-    friend_mobiles.collect! {|mobile| mobile.to_i}
+  def Fetion.send_sms_to_friends(mobile_no, password, friends, content, level = Logger::INFO)
+    friends = Array(friends)
+    friends.collect! {|friend| friend.to_i}
     fetion = Fetion.new
     fetion.logger_level = level
     fetion.mobile_no = mobile_no
@@ -48,8 +48,10 @@ class Fetion
     fetion.get_buddy_list
     fetion.get_contacts_info
     fetion.contacts.each do |contact|
-      if friend_mobiles.include? contact[:mobile_no].to_i
+      if friends.include? contact[:mobile_no].to_i
         fetion.send_sms(contact[:sip], content)
+      elsif friends.any? { |friend| contact[:sip].index(friend) }
+        fetion.send_sms
       end
     end
     fetion.logout
@@ -126,7 +128,8 @@ class Fetion
     @logger.debug "response: #{@response}"
 
     msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@response}\",cnonce=\"#{@cnonce}\",salt=\"#{@salt}\""}, arg) + FETION_SIPP
-    response = curl_exec(next_url, @ssic, msg)
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new('Fetion Error: Register failed.') unless response.is_a? Net::HTTPSuccess
     @logger.info "fetion http register success"
@@ -136,7 +139,8 @@ class Fetion
     @logger.info "fetion get buddy list"
     arg = '<args><contacts><buddy-lists /><buddies attributes="all" /><mobile-buddies attributes="all" /><chat-friends /><blacklist /></contacts></args>'
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactList'}, arg) + FETION_SIPP
-    response = curl_exec(next_url, @ssic, msg)
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: Get buddy list error") unless response.is_a? Net::HTTPSuccess
 
     response.body.scan(/uri="([^"]+)"/).each do |buddy|
@@ -155,7 +159,8 @@ class Fetion
     arg += '</contacts></args>'
 
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactsInfo'}, arg) + FETION_SIPP
-    response = curl_exec(next_url, @ssic, msg)
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: Get contacts info error") unless response.is_a? Net::HTTPSuccess
 
     response.body.scan(/uri="([^"]+)".*?mobile-no="([^"]+)"/).each do |contact|
@@ -168,7 +173,8 @@ class Fetion
   def send_sms(to, content)
     @logger.info "fetion send sms to #{to}"
     msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => to, 'N' => 'SendSMS'}, content) + FETION_SIPP
-    response = curl_exec(next_url, @ssic, msg)
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new("Fetion Error: Send sms error") unless response.is_a? Net::HTTPSuccess
     @logger.info "fetion send sms to #{to} success"
@@ -178,7 +184,8 @@ class Fetion
     @logger.info "fetion send request to add #{mobile} as friend"
     arg = %Q{<args><contacts><buddies><buddy uri="tel:#{mobile}" local-name="#{nickname}" buddy-lists="1" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddBuddy'}, arg) + FETION_SIPP
-    response = curl_exec(next_url, @ssic, msg)
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
     @logger.info "fetion send request to add #{mobile} as friend success"

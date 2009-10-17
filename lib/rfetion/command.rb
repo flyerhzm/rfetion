@@ -24,9 +24,9 @@ EOF
     options[:content] = f
   end
 
-  options[:friends_mobile] = []
-  opts.on('-f', '--friends MOBILE1,MOBILE2', Array, '(optional) Fetion friends mobile number, if no friends mobile number, send message to yourself') do |f|
-    options[:friends_mobile] = f
+  options[:friends] = []
+  opts.on('-f', '--friends MOBILE1 or FETION1, MOBILE2 or FETION2', Array, '(optional) Fetion friends mobile number or fetion number, if no friends mobile number and fetion number, send message to yourself') do |f|
+    options[:friends] = f
   end
 
   opts.on('-a', '--add_buddy MOBILE', 'Add friend mobile as fetion friend') do |f|
@@ -69,10 +69,10 @@ begin
   end
   
   raise FetionException.new('You must input your mobile number, password and content') unless options[:mobile_no] and options[:password] and options[:content]
-  if options[:friends_mobile].empty?
+  if options[:friends].empty?
     Fetion.send_sms_to_self(options[:mobile_no], options[:password], options[:content], level(options))
   else
-    Fetion.send_sms_to_friends(options[:mobile_no], options[:password], options[:friends_mobile], options[:content], level(options))
+    Fetion.send_sms_to_friends(options[:mobile_no], options[:password], options[:friends], options[:content], level(options))
   end
 rescue FetionException => e
   puts e.message
