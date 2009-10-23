@@ -62,19 +62,4 @@ Common options:
 
 ******************************************************************************
 
-h2. uuid problem
-
-if you counter problem like
-<pre><code>
-uuid.rb:265:in `read_state': undefined method `unpack' for nil:NilClass (NoMethodError) 
-</code></pre>
-
-you can change the <code>uuid.rb</code> source code in line 140:
-<pre><code>
-#state_dir = File.join('', 'var', 'tmp')
-state_dir = '.'
-</code></pre>
-
-******************************************************************************
-
 Copyright (c) 2009 Richard Huang (flyerhzm@gmail.com), released under the MIT license
