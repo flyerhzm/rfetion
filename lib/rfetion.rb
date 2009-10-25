@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'uuid'
+require 'guid'
 require 'net/http'
 require 'net/https'
 require 'rexml/document'

@@ -9,7 +9,7 @@ class Fetion
   FETION_LOGIN_URL = 'https://nav.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
   FETION_CONFIG_URL = 'http://nav.fetion.com.cn/nav/getsystemconfig.aspx'
   FETION_SIPP = 'SIPP'
-  GUID = UUID.new.generate
+  GUID = Guid.new.to_s
   @nonce = nil
 
   def initialize
@@ -236,7 +236,7 @@ class Fetion
   end
 
   def calc_cnonce
-    Digest::MD5.hexdigest(UUID.new.generate).upcase
+    Digest::MD5.hexdigest(GUID).upcase
   end
 
   def hash_password
