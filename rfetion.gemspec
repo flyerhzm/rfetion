@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rfetion}
-  s.version = "0.3.4"
+  s.version = "0.3.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Richard Huang"]
-  s.date = %q{2009-10-17}
+  s.date = %q{2009-10-25}
   s.description = %q{rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.}
   s.email = %q{flyerhzm@gmail.com}
   s.executables = ["rfetion", "rfetion"]
@@ -37,11 +37,11 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<uuid>, [">= 0"])
+      s.add_runtime_dependency(%q<guid>, [">= 0"])
     else
-      s.add_dependency(%q<uuid>, [">= 0"])
+      s.add_dependency(%q<guid>, [">= 0"])
     end
   else
-    s.add_dependency(%q<uuid>, [">= 0"])
+    s.add_dependency(%q<guid>, [">= 0"])
   end
 end
