@@ -38,7 +38,7 @@ class Fetion
 
   def Fetion.send_sms_to_friends(mobile_no, password, friends, content, level = Logger::INFO)
     friends = Array(friends)
-    friends.collect! {|friend| friend.to_i}
+    friends.collect! {|friend| friend.to_s}
     fetion = Fetion.new
     fetion.logger_level = level
     fetion.mobile_no = mobile_no
@@ -48,7 +48,7 @@ class Fetion
     fetion.get_buddy_list
     fetion.get_contacts_info
     fetion.contacts.each do |contact|
-      if friends.include? contact[:mobile_no].to_i
+      if friends.include? contact[:mobile_no].to_s
         fetion.send_sms(contact[:sip], content)
       elsif friends.any? { |friend| contact[:sip].index(friend) }
         fetion.send_sms
