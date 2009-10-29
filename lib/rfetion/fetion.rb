@@ -48,9 +48,9 @@ class Fetion
     fetion.get_buddy_list
     fetion.get_contacts_info
     fetion.contacts.each do |contact|
-      if friends.include? contact[:mobile_no].to_s
-        fetion.send_sms(contact[:sip], content)
-      elsif friends.any? { |friend| contact[:sip].index(friend) }
+      if friends.include? contact.mobile_no.to_s
+        fetion.send_sms(contact.uri, content)
+      elsif friends.any? { |friend| contact.uri.index(friend) }
         fetion.send_sms
       end
     end
@@ -81,6 +81,7 @@ class Fetion
     raise FetionException.new('Fetion Error: No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/
 
     @ssic = $1
+    @logger.debug response.body
     doc = REXML::Document.new(response.body)
     results = doc.root
     @status_code = results.attributes["status-code"]
@@ -163,8 +164,11 @@ class Fetion
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: Get contacts info error") unless response.is_a? Net::HTTPSuccess
 
-    response.body.scan(/uri="([^"]+)".*?mobile-no="([^"]+)"/).each do |contact|
-      @contacts << {:sip => contact[0], :mobile_no => contact[1]}
+    response.body.scan(%r{<events>.*?</events>}).each do |events|
+      doc = REXML::Document.new(events)
+      doc.elements.each("events/event/results/contacts/contact") do |contact|
+        @contacts << Contact.new(contact.attributes["uri"], contact.elements.first.attributes)
+      end
     end
     @logger.debug @contacts.inspect
     @logger.info "fetion get contacts info success"
