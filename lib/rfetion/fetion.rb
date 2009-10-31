@@ -167,7 +167,8 @@ class Fetion
     response.body.scan(%r{<events>.*?</events>}).each do |events|
       doc = REXML::Document.new(events)
       doc.elements.each("events/event/results/contacts/contact") do |contact|
-        @contacts << Contact.new(contact.attributes["uri"], contact.elements.first.attributes)
+        attrs = contact.elements.first ? contact.elements.first.attributes : {}
+        @contacts << Contact.new(contact.attributes["uri"], attrs)
       end
     end
     @logger.debug @contacts.inspect
