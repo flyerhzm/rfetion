@@ -48,10 +48,8 @@ class Fetion
     fetion.get_buddy_list
     fetion.get_contacts_info
     fetion.contacts.each do |contact|
-      if friends.include? contact.mobile_no.to_s
+      if friends.include? contact.mobile_no.to_s or friends.any? { |friend| contact.uri.index(friend) }
         fetion.send_sms(contact.uri, content)
-      elsif friends.any? { |friend| contact.uri.index(friend) }
-        fetion.send_sms
       end
     end
     fetion.logout
