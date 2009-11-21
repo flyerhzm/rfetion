@@ -6,7 +6,7 @@ class Fetion
   attr_reader :uri, :contacts
 
   FETION_URL = 'http://221.130.44.194/ht/sd.aspx'
-  FETION_LOGIN_URL = 'https://nav.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
+  FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
   FETION_CONFIG_URL = 'http://nav.fetion.com.cn/nav/getsystemconfig.aspx'
   FETION_SIPP = 'SIPP'
   GUID = Guid.new.to_s
