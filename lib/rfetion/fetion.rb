@@ -105,9 +105,24 @@ class Fetion
 
   def register
     @logger.info "fetion http register"
+    call = next_call
     arg = '<args><device type="PC" version="44" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
-    call = next_call
+    register_first(call, arg)
+
+    # get nonce, it failed, try again 16s later
+    begin
+      register_second(call, arg)
+    rescue
+      sleep(16)
+      register_second(call, arg)
+    end
+    @logger.info "fetion http register success"
+  end
+
+  def register_first(call, arg)
+    @logger.debug "fetion http register first"
+
     curl_exec(next_url, @ssic, FETION_SIPP)
 
     msg = sip_create("R fetion.com.cn SIP-C/2.0", {'F' => @sid, 'I' => call, 'Q' => '1 R'}, arg) + FETION_SIPP
@@ -125,13 +140,18 @@ class Fetion
     @logger.debug "salt: #{@salt}"
     @logger.debug "cnonce: #{@cnonce}"
     @logger.debug "response: #{@response}"
+    @logger.debug "fetion http register first success"
+  end
+
+  def register_second(call, arg)
+    @logger.debug "fetion http register second"
 
     msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@response}\",cnonce=\"#{@cnonce}\",salt=\"#{@salt}\""}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new('Fetion Error: Register failed.') unless response.is_a? Net::HTTPSuccess
-    @logger.info "fetion http register success"
+    @logger.debug "fetion http register second success"
   end
 
   def get_buddy_list
