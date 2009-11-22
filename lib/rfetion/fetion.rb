@@ -9,7 +9,7 @@ class Fetion
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
   FETION_CONFIG_URL = 'http://nav.fetion.com.cn/nav/getsystemconfig.aspx'
   FETION_SIPP = 'SIPP'
-  GUID = Guid.new.to_s
+  GUID = ::Guid.new.to_s
   @nonce = nil
 
   def initialize
