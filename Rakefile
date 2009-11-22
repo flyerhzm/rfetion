@@ -9,7 +9,7 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.homepage = ''
   gemspec.authors = ['Richard Huang']
   gemspec.files.exclude '.gitignore'
-  gemspec.add_dependency 'guid'
+  gemspec.add_dependency 'guid', '>= 0.1.1'
   gemspec.executables << 'rfetion'
 end
 Jeweler::GemcutterTasks.new
