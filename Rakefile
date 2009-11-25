@@ -6,7 +6,7 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.summary = 'rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.'
   gemspec.description = 'rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.'
   gemspec.email = 'flyerhzm@gmail.com'
-  gemspec.homepage = ''
+  gemspec.homepage = 'http://github.com/flyerhzm/rfetion'
   gemspec.authors = ['Richard Huang']
   gemspec.files.exclude '.gitignore'
   gemspec.add_dependency 'guid', '>= 0.1.1'
