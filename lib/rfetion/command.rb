@@ -7,10 +7,10 @@ OptionParser.new do |opts|
   opts.banner = "Usage: rfetion [options]"
 
   opts.separator ""
-  opts.separator <<EOF
+  opts.separator <<-EOF
     Example: rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content
              rfetion -m mobile -p password -a friend_mobile
-EOF
+  EOF
 
   opts.on('-m', '--mobile MOBILE', 'Fetion mobile number') do |mobile|
     options[:mobile_no] = mobile
@@ -46,6 +46,11 @@ EOF
 
   opts.separator ""
   opts.separator "Common options:"
+
+  opts.on_tail('-v', '--version', 'Show this version') do
+    puts File.read(File.dirname(__FILE__) + '/../../VERSION')
+    exit
+  end
 
   opts.on_tail("-h", "--help", "Show this message") do
     puts opts
