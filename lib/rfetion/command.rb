@@ -9,7 +9,8 @@ OptionParser.new do |opts|
   opts.separator ""
   opts.separator <<-EOF
     Example: rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content
-             rfetion -m mobile -p password -a friend_mobile
+             rfetion -m mobile -p password --add-buddy-with-mobile friend_mobile
+             rfetion -m mobile -p password --add-buddy-with-sip friend_sip
   EOF
 
   opts.on('-m', '--mobile MOBILE', 'Fetion mobile number') do |mobile|
