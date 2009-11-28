@@ -31,9 +31,14 @@ send sms to friends
 Fetion.send_sms_to_friends(mobile_no, password, friends_mobile_or_fetion_number, content)
 </code></pre>
 
-add friend
+add friend with mobile
 <pre><code>
-Fetion.add_buddy(mobile_no, password, friend_mobile)
+Fetion.add_buddy_with_mobile(mobile_no, password, friend_mobile)
+</code></pre>
+
+add friend with sip
+<pre><code>
+Fetion.add_buddy_with_sip(mobile_no, password, friend_sip)
 </code></pre>
 
 **************************************************************************
@@ -44,19 +49,27 @@ you can use it in shell command directly
 
 <pre><code>
 Usage: rfetion [options]
+
     Example: rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content
 
-             rfetion -m mobile -p password -a friend_mobile
+             rfetion -m mobile -p password --add-buddy-with-mobile friend_mobile
+
+             rfetion -m mobile -p password --add-buddy-with-sip friend_sip
 
     -m, --mobile MOBILE              Fetion mobile number
     -p, --password PASSWORD          Fetion password
     -c, --content CONTENT            Fetion message content
     -f, --friends MOBILE,FETION      (optional) Fetion friends mobile number or fetion number, if no friends mobile number and fetion number, send message to yourself
-    -a, --add_buddy MOBILE           Add friend mobile as fetion friend
+        --add-buddy-with-mobile MOBILE
+                                     Add friend mobile as fetion friend
+        --add-buddy-with-sip SIP     Add friend fetion sip as fetion friend
+
 different mode:
         --debug                      debug mode
         --silence                    silence mode
+
 Common options:
+    -v, --version                    Show this version
     -h, --help                       Show this message
 </code></pre>
 
