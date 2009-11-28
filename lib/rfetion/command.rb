@@ -29,8 +29,12 @@ OptionParser.new do |opts|
     options[:friends] = f
   end
 
-  opts.on('-a', '--add_buddy MOBILE', 'Add friend mobile as fetion friend') do |f|
+  opts.on('--add-buddy-with-mobile MOBILE', 'Add friend mobile as fetion friend') do |f|
     options[:add_mobile] = f
+  end
+
+  opts.on('--add-buddy-with-sip SIP', 'Add friend fetion sip as fetion friend') do |f|
+    options[:add_sip] = f
   end
 
   opts.separator ""
@@ -67,9 +71,10 @@ def level(options)
 end
 
 begin
-  if options[:add_mobile]
+  if options[:add_mobile] or options[:add_sip]
     raise FetionException.new('You must input your mobile number and password') unless options[:mobile_no] and options[:password]
-    Fetion.add_buddy(options[:mobile_no], options[:password], options[:add_mobile], level(options))
+    Fetion.add_buddy_with_mobile(options[:mobile_no], options[:password], options[:add_mobile], level(options)) if options[:add_mobile]
+    Fetion.add_buddy_with_sip(options[:mobile_no], options[:password], options[:add_sip], level(options)) if options[:add_sip]
     exit
   end
   

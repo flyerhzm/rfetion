@@ -55,14 +55,25 @@ class Fetion
     fetion.logout
   end
 
-  def Fetion.add_buddy(mobile_no, password, friend_mobile, level = Logger::INFO)
+  def Fetion.add_buddy_with_mobile(mobile_no, password, friend_mobile, level = Logger::INFO)
     fetion = Fetion.new
     fetion.logger_level = level
     fetion.mobile_no = mobile_no
     fetion.password = password
     fetion.login
     fetion.register
-    fetion.add_buddy(friend_mobile)
+    fetion.add_buddy_with_mobile(friend_mobile)
+    fetion.logout
+  end
+
+  def Fetion.add_buddy_with_sip(mobile_no, password, friend_sip, level = Logger::INFO)
+    fetion = Fetion.new
+    fetion.logger_level = level
+    fetion.mobile_no = mobile_no
+    fetion.password = password
+    fetion.login
+    fetion.register
+    fetion.add_buddy_with_sip(friend_sip)
     fetion.logout
   end
 
@@ -203,15 +214,26 @@ class Fetion
     @logger.info "fetion send sms to #{to} success"
   end
 
-  def add_buddy(mobile, nickname = nil)
-    @logger.info "fetion send request to add #{mobile} as friend"
+  def add_buddy_with_mobile(mobile, nickname = nil)
+    @logger.info "fetion send request to add mobile:#{mobile} as friend"
     arg = %Q{<args><contacts><buddies><buddy uri="tel:#{mobile}" local-name="#{nickname}" buddy-lists="1" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddBuddy'}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
-    @logger.info "fetion send request to add #{mobile} as friend success"
+    @logger.info "fetion send request to add mobile:#{mobile} as friend success"
+  end
+
+  def add_buddy_with_sip(sip, nickname = nil)
+    @logger.info "fetion send request to add sip:#{sip} as friend"
+    arg = %Q{<args><contacts><buddies><buddy uri="sip:#{sip}" local-name="#{nickname}" buddy-lists="1" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddBuddy'}, arg) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+
+    raise FetionException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
+    @logger.info "fetion send request to add sip:#{sip} as friend success"
   end
 
   def logout
