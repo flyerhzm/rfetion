@@ -19,10 +19,15 @@ class Fetion
     @contacts = []
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
+    @cat = true
   end
   
   def logger_level=(level)
     @logger.level = level
+  end
+
+  def set_cat=(cat)
+    @cat = cat
   end
 
   def Fetion.send_sms_to_self(mobile_no, password, content, level = Logger::INFO)
@@ -205,13 +210,13 @@ class Fetion
   end
 
   def send_sms(to, content)
-    @logger.info "fetion send sms to #{to}"
-    msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => to, 'N' => 'SendSMS'}, content) + FETION_SIPP
+    @logger.info "fetion #{send_command} to #{to}"
+    msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => to, 'N' => send_command}, content) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new("Fetion Error: Send sms error") unless response.is_a? Net::HTTPSuccess
-    @logger.info "fetion send sms to #{to} success"
+    @logger.info "fetion #{send_command} to #{to} success"
   end
 
   def add_buddy_with_mobile(mobile, nickname = nil)
@@ -297,6 +302,10 @@ class Fetion
 
   def next_call
     @next_call += 1
+  end
+  
+  def send_command
+    @cat ? 'SendCatSMS' : 'SendSMS'
   end
 end
 
