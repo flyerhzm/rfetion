@@ -57,6 +57,7 @@ class Fetion
         fetion.send_sms(contact.uri, content)
       end
     end
+    fetion.send_sms(fetion.uri, content) if  friends.any? { |friend| fetion.self? friend }
     fetion.logout
   end
 
