@@ -60,6 +60,27 @@ class Fetion
     fetion.logout
   end
 
+  def Fetion.schedule_sms(mobile_no, password, friends, content, time, level = Logger::INFO)
+    friends = Array(friends)
+    friends.collect! {|friend| friend.to_s}
+    fetion = Fetion.new
+    fetion.logger_level = level
+    fetion.mobile_no = mobile_no
+    fetion.password = password
+    fetion.login
+    fetion.register
+    fetion.get_buddy_list
+    fetion.get_contacts_info
+    receivers = fetion.contacts.collect do |contact|
+      if friends.include? contact.mobile_no.to_s or friends.any? { |friend| contact.uri.index(friend) }
+        contact.uri
+      end
+    end.compact!
+    receivers << fetion.uri if friends.any? { |friend| fetion.self? friend }
+    fetion.schedule_sms(receivers, content, time)
+    fetion.logout
+  end
+
   def Fetion.add_buddy_with_mobile(mobile_no, password, friend_mobile, level = Logger::INFO)
     fetion = Fetion.new
     fetion.logger_level = level
@@ -219,6 +240,19 @@ class Fetion
     @logger.info "fetion #{send_command} to #{to} success"
   end
 
+  def schedule_sms(receivers, content, time)
+    receivers = Array(receivers)
+    @logger.info "fetion schedule send sms to #{receivers.join(', ')}"
+    receivers_str = receivers.collect { |receiver| "<receiver uri=#{receiver} />" }.join('')
+    arg = %Q{<args><schedule-sms send-time="#{time}"><message>#{content}</message><receivers></receivers>#{receivers_str}</schedule-sms></args>}
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'SSSetScheduleSms'}, arg) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+
+    raise FetionException.new("Fetion Error: Schedule sms error") unless response.is_a? Net::HTTPSuccess
+    @logger.info "fetion schedule send sms to #{receivers.join(', ')} success"
+  end
+
   def add_buddy_with_mobile(mobile, nickname = nil)
     @logger.info "fetion send request to add mobile:#{mobile} as friend"
     arg = %Q{<args><contacts><buddies><buddy uri="tel:#{mobile}" local-name="#{nickname}" buddy-lists="1" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
@@ -306,6 +340,10 @@ class Fetion
   
   def send_command
     @cat ? 'SendCatSMS' : 'SendSMS'
+  end
+
+  def self?(mobile_or_sid)
+    mobile_or_sid == @mobile_no or mobile_or_sid == @sid
   end
 end
 
