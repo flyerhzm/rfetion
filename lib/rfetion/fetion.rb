@@ -209,20 +209,17 @@ class Fetion
 
   def get_contacts_info
     @logger.info "fetion get contacts info"
-    arg = '<args><contacts attributes="all">'
     @buddies.each do |buddy|
+      arg = '<args><contacts attributes="all">'
       arg += "<contact uri=\"#{buddy[:uri]}\" />"
-    end
-    arg += '</contacts></args>'
+      arg += '</contacts></args>'
 
-    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactsInfo'}, arg) + FETION_SIPP
-    curl_exec(next_url, @ssic, msg)
-    response = curl_exec(next_url, @ssic, FETION_SIPP)
-    raise FetionException.new("Fetion Error: Get contacts info error") unless response.is_a? Net::HTTPSuccess
-
-    response.body.scan(%r{<events>.*?</events>}).each do |events|
-      doc = REXML::Document.new(events)
-      doc.elements.each("events/event/results/contacts/contact") do |contact|
+      msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactsInfo'}, arg) + FETION_SIPP
+      curl_exec(next_url, @ssic, msg)
+      response = curl_exec(next_url, @ssic, FETION_SIPP)
+      raise FetionException.new("Fetion Error: Get contacts info error") unless response.is_a? Net::HTTPSuccess
+      doc = REXML::Document.new(response.body)
+      doc.elements.each("results/contacts/contact") do |contact|
         attrs = contact.children.size == 0 ? {} : contact.children.first.attributes
         @contacts << Contact.new(contact.attributes["uri"], attrs)
       end
@@ -243,6 +240,9 @@ class Fetion
 
   def schedule_sms(receivers, content, time)
     receivers = Array(receivers)
+    time = time.is_a?(Time) ? time : Time.parse(time)
+    raise FetionException.new("Can't schedule send sms to more than 32 friends") if receivers.size > 32
+    raise FetionException.new("Can't schedule send sms before ten minutes later") if (time - Time.now).to_i < 600
     @logger.info "fetion schedule send sms to #{receivers.join(', ')}"
     receivers_str = receivers.collect { |receiver| "<receiver uri=#{receiver} />" }.join('')
     arg = %Q{<args><schedule-sms send-time="#{time}"><message>#{content}</message><receivers></receivers>#{receivers_str}</schedule-sms></args>}
