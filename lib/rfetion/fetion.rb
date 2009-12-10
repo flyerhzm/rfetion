@@ -144,7 +144,7 @@ class Fetion
   def register
     @logger.info "fetion http register"
     call = next_call
-    arg = '<args><device type="PC" version="44" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
+    arg = '<args><device type="PC" version="0" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group;im-relay;xeno-im;direct-sms;sms2fetion" /><events value="contact;permission;system-message;personal-group;compact" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
     register_first(call, arg)
 
@@ -194,14 +194,15 @@ class Fetion
 
   def get_buddy_list
     @logger.info "fetion get buddy list"
-    arg = '<args><contacts><buddy-lists /><buddies attributes="all" /><mobile-buddies attributes="all" /><chat-friends /><blacklist /></contacts></args>'
+    arg = '<args><contacts><buddy-lists /><buddies attributes="all" /><mobile-buddies attributes="all" /><chat-friends /><blacklist /><allow-list /></contacts></args>'
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactList'}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: Get buddy list error") unless response.is_a? Net::HTTPSuccess
 
-    response.body.scan(/uri="([^"]+)"/).each do |buddy|
-      @buddies << {:uri => buddy[0]}
+    doc = REXML::Document.new(response.body.chomp(FETION_SIPP))
+    doc.elements.each("results/contacts/allow-list/contact") do |contact|
+      @buddies << {:uri => contact.attributes["uri"]}
     end
     @logger.debug "buddies: #{@buddies.inspect}"
     @logger.info "fetion get buddy list success"
@@ -209,20 +210,25 @@ class Fetion
 
   def get_contacts_info
     @logger.info "fetion get contacts info"
+    arg = '<args><contacts attributes="provisioning;impresa;mobile-no;nickname;name;gender;portrait-crc;ivr-enabled" extended-attributes="score-level">'
     @buddies.each do |buddy|
-      arg = '<args><contacts attributes="all">'
       arg += "<contact uri=\"#{buddy[:uri]}\" />"
-      arg += '</contacts></args>'
+    end
+    arg += '</contacts></args>'
 
-      msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactsInfo'}, arg) + FETION_SIPP
-      curl_exec(next_url, @ssic, msg)
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactsInfo'}, arg) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    while true do
+      sleep 1
       response = curl_exec(next_url, @ssic, FETION_SIPP)
       raise FetionException.new("Fetion Error: Get contacts info error") unless response.is_a? Net::HTTPSuccess
-      doc = REXML::Document.new(response.body)
-      doc.elements.each("results/contacts/contact") do |contact|
-        attrs = contact.children.size == 0 ? {} : contact.children.first.attributes
-        @contacts << Contact.new(contact.attributes["uri"], attrs)
-      end
+      break if response.body.size > FETION_SIPP.size
+    end
+
+    doc = REXML::Document.new(response.body.chomp(FETION_SIPP))
+    doc.elements.each("results/contacts/contact") do |contact|
+      attrs = contact.children.size == 0 ? {} : contact.children.first.attributes
+      @contacts << Contact.new(contact.attributes["uri"], attrs)
     end
     @logger.debug @contacts.inspect
     @logger.info "fetion get contacts info success"
