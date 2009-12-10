@@ -21,22 +21,28 @@ gem install rfetion
 
 h2. Usage
 
-send sms to friends or yourself
+* send sms to friends or yourself
+
 <pre><code>
 Fetion.send_sms(mobile_no, password, mobile_or_fetion_numbers, content)
 </code></pre>
 
-add friend with mobile
+if mobile_or_fetion_numbers are nil, send sms to yourself.
+
+* add friend with mobile
+
 <pre><code>
 Fetion.add_buddy_with_mobile(mobile_no, password, friend_mobile)
 </code></pre>
 
-add friend with sip
+* add friend with sip
+
 <pre><code>
 Fetion.add_buddy_with_sip(mobile_no, password, friend_sip)
 </code></pre>
 
-send schedule sms to friends
+* send schedule sms to friends
+
 <pre><code>
 Fetion.schedule_sms(mobile_no, password, mobile_or_fetion_number, content, time)
 </code></pre>
