@@ -30,40 +30,31 @@ class Fetion
     @cat = cat
   end
 
-  def Fetion.send_sms_to_self(mobile_no, password, content, level = Logger::INFO)
+  def Fetion.send_sms(mobile_no, password, receivers, content, level = Logger::INFO)
     fetion = Fetion.new
     fetion.logger_level = level
     fetion.mobile_no = mobile_no
     fetion.password = password
     fetion.login
     fetion.register
-    fetion.send_sms(fetion.uri, content)
-    fetion.logout
-  end
-
-  def Fetion.send_sms_to_friends(mobile_no, password, friends, content, level = Logger::INFO)
-    friends = Array(friends)
-    friends.collect! {|friend| friend.to_s}
-    fetion = Fetion.new
-    fetion.logger_level = level
-    fetion.mobile_no = mobile_no
-    fetion.password = password
-    fetion.login
-    fetion.register
-    fetion.get_buddy_list
-    fetion.get_contacts_info
-    fetion.contacts.each do |contact|
-      if friends.include? contact.mobile_no.to_s or friends.any? { |friend| contact.uri.index(friend) }
-        fetion.send_sms(contact.uri, content)
+    if receivers
+      receivers = Array(receivers)
+      receivers.collect! {|receiver| receiver.to_s}
+      fetion.get_buddy_list
+      fetion.get_contacts_info
+      fetion.contacts.each do |contact|
+        if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
+          fetion.send_sms(contact.uri, content)
+        end
       end
+      fetion.send_sms(fetion.uri, content) if  receivers.any? { |receiver| fetion.self? receiver }
+    else
+      fetion.send_sms(fetion.uri, content)
     end
-    fetion.send_sms(fetion.uri, content) if  friends.any? { |friend| fetion.self? friend }
     fetion.logout
   end
 
-  def Fetion.schedule_sms(mobile_no, password, friends, content, time, level = Logger::INFO)
-    friends = Array(friends)
-    friends.collect! {|friend| friend.to_s}
+  def Fetion.schedule_sms(mobile_no, password, receivers, content, time, level = Logger::INFO)
     fetion = Fetion.new
     fetion.logger_level = level
     fetion.mobile_no = mobile_no
@@ -72,13 +63,19 @@ class Fetion
     fetion.register
     fetion.get_buddy_list
     fetion.get_contacts_info
-    receivers = fetion.contacts.collect do |contact|
-      if friends.include? contact.mobile_no.to_s or friends.any? { |friend| contact.uri.index(friend) }
-        contact.uri
-      end
-    end.compact!
-    receivers << fetion.uri if friends.any? { |friend| fetion.self? friend }
-    fetion.schedule_sms(receivers, content, time)
+    if receivers
+      receivers = Array(receivers)
+      receivers.collect! {|receiver| receiver.to_s}
+      new_receivers = fetion.contacts.collect do |contact|
+        if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
+          contact.uri
+        end
+      end.compact!
+      new_receivers << fetion.uri if receivers.any? { |receiver| fetion.self? receiver }
+      fetion.schedule_sms(new_receivers, content, time)
+    else  
+      fetion.schedule_sms([fetion.uri], content, time)
+    end
     fetion.logout
   end
 
@@ -234,14 +231,14 @@ class Fetion
     @logger.info "fetion get contacts info success"
   end
 
-  def send_sms(to, content)
-    @logger.info "fetion #{send_command} to #{to}"
-    msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => to, 'N' => send_command}, content) + FETION_SIPP
+  def send_sms(receiver, content)
+    @logger.info "fetion #{send_command} to #{receiver}"
+    msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => receiver, 'N' => send_command}, content) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new("Fetion Error: Send sms error") unless response.is_a? Net::HTTPSuccess
-    @logger.info "fetion #{send_command} to #{to} success"
+    @logger.info "fetion #{send_command} to #{receiver} success"
   end
 
   def schedule_sms(receivers, content, time)
@@ -249,7 +246,7 @@ class Fetion
     time = time.is_a?(Time) ? time : Time.parse(time)
     now = Time.now
     one_year = Time.local(now.year + 1, now.month, now.day, now.hour, now.min, now.sec)
-    raise FetionException.new("Can't schedule send sms to more than 32 friends") if receivers.size > 32
+    raise FetionException.new("Can't schedule send sms to more than 32 receivers") if receivers.size > 32
     raise FetionException.new("Schedule time must between #{(now + 600).strftime('%Y-%m-%d %H:%M:%S')} and #{one_year.strftime('%Y-%m-%d %H:%M:%S')}") if time < (now + 600) or time > one_year
     @logger.info "fetion schedule send sms to #{receivers.join(', ')}"
     

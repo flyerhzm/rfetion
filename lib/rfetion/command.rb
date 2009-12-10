@@ -8,10 +8,11 @@ OptionParser.new do |opts|
 
   opts.separator ""
   opts.separator <<-EOF
-    Example: rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content
+    Example: rfetion -m mobile -p password -c sms_content
+             rfetion -m mobile -p password -r mobile_or_fetion_numbers -c sms_content
+             rfetion -m mobile -p password -r mobile_or_fetion_numbers -c sms_content -t time
              rfetion -m mobile -p password --add-buddy-with-mobile friend_mobile
              rfetion -m mobile -p password --add-buddy-with-sip friend_sip
-             rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content -t time
              
   EOF
 
@@ -27,9 +28,12 @@ OptionParser.new do |opts|
     options[:content] = content
   end
 
-  options[:friends] = []
-  opts.on('-f', '--friends MOBILE,FETION', Array, '(optional) Fetion friends mobile number or fetion number, if no friends mobile number and fetion number, send message to yourself') do |friends|
-    options[:friends] = friends
+  opts.on('-r', '--receivers MOBILE,SIP', Array, "(optional) Receivers' Fetion mobile numbers or fetion sip numbers, if no recievers, send sms to yourself") do |receivers|
+    options[:receivers] = receivers
+  end
+
+  opts.on('-t', '--time TIME', 'Schedule time to send sms, format is "2009-12-10 20:00:00"') do |time|
+    options[:time] = time
   end
 
   opts.on('--add-buddy-with-mobile MOBILE', 'Add friend mobile as fetion friend') do |mobile|
@@ -38,10 +42,6 @@ OptionParser.new do |opts|
 
   opts.on('--add-buddy-with-sip SIP', 'Add friend fetion sip as fetion friend') do |sip|
     options[:add_sip] = sip
-  end
-  
-  opts.on('-t', '--time TIME', 'Schedule time to send sms') do |time|
-    options[:time] = time
   end
 
   opts.separator ""
@@ -87,13 +87,9 @@ begin
   
   raise FetionException.new('You must input your mobile number, password and content') unless options[:mobile_no] and options[:password] and options[:content]
   if options[:time]
-    Fetion.schedule_sms(options[:mobile_no], options[:password], options[:friends], options[:content], options[:time], level(options))
+    Fetion.schedule_sms(options[:mobile_no], options[:password], options[:receivers], options[:content], options[:time], level(options))
   else
-    if options[:friends].empty?
-      Fetion.send_sms_to_self(options[:mobile_no], options[:password], options[:content], level(options))
-    else
-      Fetion.send_sms_to_friends(options[:mobile_no], options[:password], options[:friends], options[:content], level(options))
-    end
+    Fetion.send_sms(options[:mobile_no], options[:password], options[:receivers], options[:content], level(options))
   end
 rescue FetionException => e
   puts e.message

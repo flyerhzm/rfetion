@@ -21,14 +21,9 @@ gem install rfetion
 
 h2. Usage
 
-send sms to yourself
+send sms to friends or yourself
 <pre><code>
-Fetion.send_sms_to_self(mobile_no, password, content)
-</code></pre>
-
-send sms to friends
-<pre><code>
-Fetion.send_sms_to_friends(mobile_no, password, friends_mobile_or_fetion_number, content)
+Fetion.send_sms(mobile_no, password, mobile_or_fetion_numbers, content)
 </code></pre>
 
 add friend with mobile
@@ -43,7 +38,7 @@ Fetion.add_buddy_with_sip(mobile_no, password, friend_sip)
 
 send schedule sms to friends
 <pre><code>
-Fetion.schedule_sms(mobile_no, password, friends_mobile_or_fetion_number, content, time)
+Fetion.schedule_sms(mobile_no, password, mobile_or_fetion_number, content, time)
 </code></pre>
 
 Time format is %Y-%m-%d %H:%M:%S
@@ -57,19 +52,20 @@ you can use it in shell command directly
 <pre><code>
 Usage: rfetion [options]
 
-    Example: rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content
-             rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content -t time
+    Example: rfetion -m mobile -p password -c sms_content
+             rfetion -m mobile -p password -r mobile_or_fetion_numbers -c sms_content
+             rfetion -m mobile -p password -r mobile_or_fetion_numbers -c sms_content -t time
              rfetion -m mobile -p password --add-buddy-with-mobile friend_mobile
              rfetion -m mobile -p password --add-buddy-with-sip friend_sip
-         
+
     -m, --mobile MOBILE              Fetion mobile number
     -p, --password PASSWORD          Fetion password
     -c, --content CONTENT            Fetion message content
-    -f, --friends MOBILE,FETION      (optional) Fetion friends mobile number or fetion number, if no friends mobile number and fetion number, send message to yourself
+    -r, --receivers MOBILE,SIP       (optional) Receivers' Fetion mobile numbers or fetion sip numbers, if no recievers, send sms to yourself
+    -t, --time TIME                  Schedule time to send sms, format is "2009-12-10 20:00:00"
         --add-buddy-with-mobile MOBILE
                                      Add friend mobile as fetion friend
         --add-buddy-with-sip SIP     Add friend fetion sip as fetion friend
-    -t, --time TIME                  Schedule time to send sms
 
 
 different mode:
