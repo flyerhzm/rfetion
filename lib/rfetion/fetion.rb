@@ -250,9 +250,10 @@ class Fetion
     raise FetionException.new("Can't schedule send sms to more than 32 friends") if receivers.size > 32
     raise FetionException.new("Can't schedule send sms before ten minutes later") if (time - Time.now).to_i < 600
     @logger.info "fetion schedule send sms to #{receivers.join(', ')}"
-    receivers_str = receivers.collect { |receiver| "<receiver uri=#{receiver} />" }.join('')
-    arg = %Q{<args><schedule-sms send-time="#{time}"><message>#{content}</message><receivers></receivers>#{receivers_str}</schedule-sms></args>}
-    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'SSSetScheduleSms'}, arg) + FETION_SIPP
+    
+    receivers_str = receivers.collect { |receiver| %Q[<receiver uri="#{receiver}" />] }.join('')
+    arg = %Q{<args><schedule-sms send-time="#{time.getutc.strftime('%Y-%m-%d %H:%M:%S')}"><message>#{content}</message><receivers>#{receivers_str}</receivers></schedule-sms></args>}
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'SSSetScheduleCatSms'}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
