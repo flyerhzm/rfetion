@@ -86,6 +86,7 @@ class Fetion
     fetion.password = password
     fetion.login
     fetion.register
+    fetion.get_personal_info
     fetion.add_buddy_with_mobile(friend_mobile)
     fetion.logout
   end
@@ -97,6 +98,7 @@ class Fetion
     fetion.password = password
     fetion.login
     fetion.register
+    fetion.get_personal_info
     fetion.add_buddy_with_sip(friend_sip)
     fetion.logout
   end
@@ -141,7 +143,7 @@ class Fetion
   def register
     @logger.info "fetion http register"
     call = next_call
-    arg = '<args><device type="PC" version="284488270" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group;im-relay;xeno-im;direct-sms;sms2fetion" /><events value="contact;permission;system-message;personal-group;compact" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
+    arg = '<args><device type="PC" version="284571220" client-version="3.3.0370" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
     register_first(call, arg)
 
@@ -260,20 +262,44 @@ class Fetion
     @logger.info "fetion schedule send sms to #{receivers.join(', ')} success"
   end
 
-  def add_buddy_with_mobile(mobile, nickname = nil)
+  def get_personal_info
+    @logger.info "fetion get personal info"
+    arg = %Q{<args><personal attributes="all" /><services version="" attributes="all" /><config version="96" attributes="all" /><mobile-device attributes="all" /></args>}
+    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetPersonalInfo'}, arg) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    raise FetionException.new("Fetion Error: Get personal info error") unless response.is_a? Net::HTTPSuccess
+
+    doc = REXML::Document.new(response.body.chomp(FETION_SIPP))
+    doc.elements.each('results/personal') do |person|
+      @person = person.attributes
+    end
+    @logger.info "fetion get personal info success"
+  end
+
+  def add_buddy_with_mobile(mobile)
     @logger.info "fetion send request to add mobile:#{mobile} as friend"
-    arg = %Q{<args><contacts><buddies><buddy uri="tel:#{mobile}" local-name="#{nickname}" buddy-lists="1" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
+    arg = %Q{<args><contacts><buddies><buddy uri="tel:#{mobile}" local-name="" buddy-lists="1" desc="#{@person['nickname']}" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddBuddy'}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
-
     raise FetionException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
+
+    if response.body =~ /No Subscription/
+      arg = %Q{<args><contacts><mobile-buddies><mobile-buddy uri="tel:#{mobile}" local-name="" buddy-lists="1" desc="#{@person['nickname']}" expose-mobile-no="1" expose-name="1" /></mobile-buddies></contacts></args>}
+      msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddMobileBuddy'}, arg) + FETION_SIPP
+      curl_exec(next_url, @ssic, msg)
+      response = curl_exec(next_url, @ssic, FETION_SIPP)
+      raise FetionException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
+
+      raise FetionException.new("Fetion Error: No this mobile") if response.body =~ /Not Found/
+    end
     @logger.info "fetion send request to add mobile:#{mobile} as friend success"
   end
 
-  def add_buddy_with_sip(sip, nickname = nil)
+  def add_buddy_with_sip(sip)
     @logger.info "fetion send request to add sip:#{sip} as friend"
-    arg = %Q{<args><contacts><buddies><buddy uri="sip:#{sip}" local-name="#{nickname}" buddy-lists="1" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
+    arg = %Q{<args><contacts><buddies><buddy uri="sip:#{sip}" local-name="" buddy-lists="1" desc="#{@person['nickname']}" expose-mobile-no="1" expose-name="1" /></buddies></contacts></args>}
     msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddBuddy'}, arg) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
