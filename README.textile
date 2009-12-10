@@ -41,6 +41,13 @@ add friend with sip
 Fetion.add_buddy_with_sip(mobile_no, password, friend_sip)
 </code></pre>
 
+send schedule sms to friends
+<pre><code>
+Fetion.schedule_sms(mobile_no, password, friends_mobile_or_fetion_number, content, time)
+</code></pre>
+
+Time format is %Y-%m-%d %H:%M:%S
+
 **************************************************************************
 
 h2. Shell command
@@ -51,11 +58,10 @@ you can use it in shell command directly
 Usage: rfetion [options]
 
     Example: rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content
-
+             rfetion -m mobile -p password -f friends_mobile_or_fetion_number -c sms_content -t time
              rfetion -m mobile -p password --add-buddy-with-mobile friend_mobile
-
              rfetion -m mobile -p password --add-buddy-with-sip friend_sip
-
+         
     -m, --mobile MOBILE              Fetion mobile number
     -p, --password PASSWORD          Fetion password
     -c, --content CONTENT            Fetion message content
@@ -63,6 +69,8 @@ Usage: rfetion [options]
         --add-buddy-with-mobile MOBILE
                                      Add friend mobile as fetion friend
         --add-buddy-with-sip SIP     Add friend fetion sip as fetion friend
+    -t, --time TIME                  Schedule time to send sms
+
 
 different mode:
         --debug                      debug mode
