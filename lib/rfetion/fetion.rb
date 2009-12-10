@@ -144,7 +144,7 @@ class Fetion
   def register
     @logger.info "fetion http register"
     call = next_call
-    arg = '<args><device type="PC" version="0" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group;im-relay;xeno-im;direct-sms;sms2fetion" /><events value="contact;permission;system-message;personal-group;compact" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
+    arg = '<args><device type="PC" version="284488270" client-version="3.2.0540" /><caps value="simple-im;im-session;temp-group;personal-group;im-relay;xeno-im;direct-sms;sms2fetion" /><events value="contact;permission;system-message;personal-group;compact" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
     register_first(call, arg)
 
