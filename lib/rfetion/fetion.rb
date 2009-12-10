@@ -247,8 +247,10 @@ class Fetion
   def schedule_sms(receivers, content, time)
     receivers = Array(receivers)
     time = time.is_a?(Time) ? time : Time.parse(time)
+    now = Time.now
+    one_year = Time.local(now.year + 1, now.month, now.day, now.hour, now.min, now.sec)
     raise FetionException.new("Can't schedule send sms to more than 32 friends") if receivers.size > 32
-    raise FetionException.new("Can't schedule send sms before ten minutes later") if (time - Time.now).to_i < 600
+    raise FetionException.new("Schedule time must between #{(now + 600).strftime('%Y-%m-%d %H:%M:%S')} and #{one_year.strftime('%Y-%m-%d %H:%M:%S')}") if time < (now + 600) or time > one_year
     @logger.info "fetion schedule send sms to #{receivers.join(', ')}"
     
     receivers_str = receivers.collect { |receiver| %Q[<receiver uri="#{receiver}" />] }.join('')
