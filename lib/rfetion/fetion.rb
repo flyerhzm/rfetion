@@ -314,7 +314,7 @@ class Fetion
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
-    raise FetionException.new("Fetion Error: Logout error") unless response.is_a? Net::HTTPSuccess
+    # raise FetionException.new("Fetion Error: Logout error") unless response.is_a? Net::HTTPSuccess
     @logger.info "fetion logout success"
   end
 
