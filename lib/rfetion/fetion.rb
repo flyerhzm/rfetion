@@ -145,13 +145,18 @@ class Fetion
     call = next_call
     arg = '<args><device type="PC" version="284571220" client-version="3.3.0370" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
-    register_first(call, arg)
-
     # get nonce, it failed, try again 16s later
+    begin
+      register_first(call, arg)
+    rescue
+      sleep 16
+      register_first(call, arg)
+    end
+
     begin
       register_second(call, arg)
     rescue
-      sleep(16)
+      sleep 16
       register_second(call, arg)
     end
     @logger.info "fetion http register success"
@@ -310,7 +315,7 @@ class Fetion
 
   def logout
     @logger.info "fetion logout"
-    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '2 R', 'X' => 0}, '') + FETION_SIPP
+    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => 1, 'Q' => '3 R', 'X' => 0}, '') + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
