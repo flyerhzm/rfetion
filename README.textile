@@ -24,30 +24,47 @@ h2. Usage
 * send sms to friends or yourself
 
 <pre><code>
-Fetion.send_sms(mobile_no, password, mobile_or_fetion_numbers, content)
+Fetion.send_sms(options)
 </code></pre>
 
-if mobile_or_fetion_numbers are nil, send sms to yourself.
+options can be:
+<code>mobile_no</code>
+<code>sid</code>
+<code>password</code>
+<code>receivers</code>, if receivers are nil, send sms to yourself
+<code>content</code>
+<code>logger_level</code>
 
-* add friend with mobile
-
-<pre><code>
-Fetion.add_buddy_with_mobile(mobile_no, password, friend_mobile)
-</code></pre>
-
-* add friend with sip
-
-<pre><code>
-Fetion.add_buddy_with_sip(mobile_no, password, friend_sip)
-</code></pre>
 
 * send schedule sms to friends
 
 <pre><code>
-Fetion.schedule_sms(mobile_no, password, mobile_or_fetion_number, content, time)
+Fetion.schedule_sms(options)
 </code></pre>
 
-Time format is %Y-%m-%d %H:%M:%S
+options can be:
+<code>mobile_no</code>
+<code>sid</code>
+<code>password</code>
+<code>receivers</code>, if receivers are nil, send sms to yourself
+<code>content</code>
+<code>time</code>, time format is %Y-%m-%d %H:%M:%S
+<code>logger_level</code>
+
+
+* add friend
+
+<pre><code>
+Fetion.add_buddy(options)
+</code></pre>
+
+options can be:
+<code>mobile_no</code>
+<code>sid</code>
+<code>password</code>
+<code>friend_mobile</code>
+<code>friend_sip</code>
+<code>logger_level</code>
 
 **************************************************************************
 
@@ -59,20 +76,23 @@ you can use it in shell command directly
 Usage: rfetion [options]
 
     Example: rfetion -m mobile -p password -c sms_content
+             rfetion -s sip -p password -c sms_content
              rfetion -m mobile -p password -r mobile_or_fetion_numbers -c sms_content
              rfetion -m mobile -p password -r mobile_or_fetion_numbers -c sms_content -t time
              rfetion -m mobile -p password --add-buddy-with-mobile friend_mobile
+             rfetion -s sip -p password --add-buddy-with-mobile friend_mobile
              rfetion -m mobile -p password --add-buddy-with-sip friend_sip
 
+
     -m, --mobile MOBILE              Fetion mobile number
+    -s, --sip FETION_SIP             Fetion sid number
     -p, --password PASSWORD          Fetion password
     -c, --content CONTENT            Fetion message content
-    -r, --receivers MOBILE,SIP       (optional) Receivers' Fetion mobile numbers or fetion sip numbers, if no recievers, send sms to yourself
+    -r, --receivers MOBILE,SIP       Receivers' Fetion mobile numbers or fetion sip numbers, if no recievers, send sms to yourself
     -t, --time TIME                  Schedule time to send sms, format is "2009-12-10 20:00:00"
         --add-buddy-with-mobile MOBILE
                                      Add friend mobile as fetion friend
         --add-buddy-with-sip SIP     Add friend fetion sip as fetion friend
-
 
 different mode:
         --debug                      debug mode
