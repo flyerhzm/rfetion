@@ -222,9 +222,11 @@ class Fetion
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: Get buddy list error") unless response.is_a? Net::HTTPSuccess
 
-    doc = REXML::Document.new(response.body.chomp(FETION_SIPP))
-    doc.elements.each("results/contacts/allow-list/contact") do |contact|
-      @buddies << {:uri => contact.attributes["uri"]}
+    response.body.scan(%r{<results>.*?</results>}).each do |results|
+      doc = REXML::Document.new(results)
+      doc.elements.each("results/contacts/allow-list/contact") do |contact|
+        @buddies << {:uri => contact.attributes["uri"]}
+      end
     end
     @logger.debug "buddies: #{@buddies.inspect}"
     @logger.info "fetion get buddy list success"
@@ -247,10 +249,12 @@ class Fetion
       break if response.body.size > FETION_SIPP.size
     end
 
-    doc = REXML::Document.new(response.body.chomp(FETION_SIPP))
-    doc.elements.each("results/contacts/contact") do |contact|
-      attrs = contact.children.size == 0 ? {} : contact.children.first.attributes
-      @contacts << Contact.new(contact.attributes["uri"], attrs)
+    response.body.scan(%r{<results>.*?</results>}).each do |results|
+      doc = REXML::Document.new(results)
+      doc.elements.each("results/contacts/contact") do |contact|
+        attrs = contact.children.size == 0 ? {} : contact.children.first.attributes
+        @contacts << Contact.new(contact.attributes["uri"], attrs)
+      end
     end
     @logger.debug @contacts.inspect
     @logger.info "fetion get contacts info success"
