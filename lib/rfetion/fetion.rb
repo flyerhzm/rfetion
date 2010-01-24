@@ -9,7 +9,6 @@ class Fetion
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
   FETION_CONFIG_URL = 'http://nav.fetion.com.cn/nav/getsystemconfig.aspx'
   FETION_SIPP = 'SIPP'
-  GUID = ::Guid.new.to_s
   @nonce = nil
 
   def initialize
@@ -20,6 +19,7 @@ class Fetion
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
     @cat = true
+    @guid = ::Guid.new.to_s
   end
   
   def logger_level=(level)
@@ -127,7 +127,7 @@ class Fetion
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{GUID}", 'User-Agent' => 'IIC2.0/PC 3.2.0540'}
+    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => 'IIC2.0/PC 3.2.0540'}
     response = http.request_get(uri.request_uri, headers)
 
     raise FetionException.new('Fetion Error: Login failed.') unless response.is_a? Net::HTTPSuccess
@@ -348,7 +348,7 @@ class Fetion
     @logger.debug "body: #{body}"
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
-    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{GUID}", 'User-Agent' => 'IIC2.0/PC 3.2.0540', 'Cookie' => "ssic=#{@ssic}"}
+    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => 'IIC2.0/PC 3.2.0540', 'Cookie' => "ssic=#{@ssic}"}
     response = http.request_post(uri.request_uri, body, headers)
 
     @logger.debug "response: #{response.inspect}"
@@ -376,7 +376,7 @@ class Fetion
   end
 
   def calc_cnonce
-    Digest::MD5.hexdigest(GUID).upcase
+    Digest::MD5.hexdigest(@guid).upcase
   end
 
   def hash_password
