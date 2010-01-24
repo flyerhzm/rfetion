@@ -166,14 +166,14 @@ class Fetion
     # get nonce, it failed, try again 16s later
     begin
       register_first(call, arg)
-    rescue
+    rescue FetionException
       sleep 16
       register_first(call, arg)
     end
 
     begin
       register_second(call, arg)
-    rescue
+    rescue FetionException
       sleep 16
       register_second(call, arg)
     end
