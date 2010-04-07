@@ -3,7 +3,7 @@ require 'guid'
 require 'time'
 require 'net/http'
 require 'net/https'
-require 'rexml/document'
+require 'nokogiri'
 require 'digest/sha1'
 require 'digest/md5'
 require 'logger'
@@ -145,14 +145,14 @@ class Fetion
 
     @ssic = $1
     @logger.debug response.body
-    doc = REXML::Document.new(response.body)
+    doc = Nokogiri::XML(response.body)
     results = doc.root
-    @status_code = results.attributes["status-code"]
+    @status_code = results["status-code"]
     user = results.children.first
-    @user_status = user.attributes['user-status']
-    @uri = user.attributes['uri']
-    @mobile_no = user.attributes['mobile-no']
-    @user_id = user.attributes['user-id']
+    @user_status = user['user-status']
+    @uri = user['uri']
+    @mobile_no = user['mobile-no']
+    @user_id = user['user-id']
     if @uri =~ /sip:(\d+)@(.+);/
       @sid = $1
       @domain = $2
@@ -233,9 +233,9 @@ class Fetion
     raise FetionException.new("Fetion Error: Get buddy list error") unless response.is_a? Net::HTTPSuccess
 
     response.body.scan(%r{<results>.*?</results>}).each do |results|
-      doc = REXML::Document.new(results)
-      doc.elements.each("results/contacts/allow-list/contact") do |contact|
-        @buddies << {:uri => contact.attributes["uri"]}
+      doc = Nokogiri::XML(results)
+      doc.root.xpath("/results/contacts/allow-list/contact").each do |contact|
+        @buddies << {:uri => contact["uri"]}
       end
     end
     @logger.debug "buddies: #{@buddies.inspect}"
@@ -260,10 +260,10 @@ class Fetion
     end
 
     response.body.scan(%r{<results>.*?</results>}).each do |results|
-      doc = REXML::Document.new(results)
-      doc.elements.each("results/contacts/contact") do |contact|
-        attrs = contact.children.size == 0 ? {} : contact.children.first.attributes
-        @contacts << Contact.new(contact.attributes["uri"], attrs)
+      doc = Nokogiri::XML(results)
+      doc.root.xpath("/results/contacts/contact").each do |contact|
+        attrs = contact.children.size == 0 ? {} : contact.children.first
+        @contacts << Contact.new(contact["uri"], attrs)
       end
     end
     @logger.debug @contacts.inspect
@@ -307,10 +307,8 @@ class Fetion
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: Get personal info error") unless response.is_a? Net::HTTPSuccess
 
-    doc = REXML::Document.new(response.body.chomp(FETION_SIPP))
-    doc.elements.each('results/personal') do |person|
-      @person = person.attributes
-    end
+    doc = Nokogiri::XML(response.body.chomp(FETION_SIPP))
+    @person = doc.root.xpath('/results/personal').first
     @logger.info "fetion get personal info success"
   end
 

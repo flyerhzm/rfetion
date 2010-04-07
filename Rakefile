@@ -10,6 +10,7 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.authors = ['Richard Huang']
   gemspec.files.exclude '.gitignore'
   gemspec.add_dependency 'guid', '>= 0.1.1'
+  gemspec.add_dependency 'nokogiri'
   gemspec.executables << 'rfetion'
 end
 Jeweler::GemcutterTasks.new

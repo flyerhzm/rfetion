@@ -1,0 +1,122 @@
+From ab466ca67b2d86ba044750787200547386c13e7e Mon Sep 17 00:00:00 2001
+From: Richard Huang <flyerhzm@gmail.com>
+Date: Wed, 7 Apr 2010 21:54:27 +0800
+Subject: use nokogiri to parse xml
+
+---
+ Rakefile              |    1 +
+ lib/rfetion.rb        |   12 ++----------
+ lib/rfetion/fetion.rb |   41 ++++++++++++++++++++++++-----------------
+ 3 files changed, 27 insertions(+), 27 deletions(-)
+
+diff --git a/Rakefile b/Rakefile
+index 9a5ec139a21202a57ab32d78c8844c6f5a695828..6938281b5df06980ac7d5b26e4a4fd6ca08cb230 100644
+--- a/Rakefile
++++ b/Rakefile
+@@ -10,6 +10,7 @@ Jeweler::Tasks.new do |gemspec|
+   gemspec.authors = ['Richard Huang']
+   gemspec.files.exclude '.gitignore'
+   gemspec.add_dependency 'guid', '>= 0.1.1'
++  gemspec.add_dependency 'nokogiri'
+   gemspec.executables << 'rfetion'
+ end
+ Jeweler::GemcutterTasks.new
+diff --git a/lib/rfetion.rb b/lib/rfetion.rb
+index f86081acb4b182ea45c7d63514775c9bbb7d6be0..23f4775dad61ffb3eafe7fd3d63cd363f5d10a73 100644
+--- a/lib/rfetion.rb
++++ b/lib/rfetion.rb
+@@ -1,10 +1,2 @@
+-require 'rubygems'
+-require 'guid'
+-require 'time'
+-require 'net/http'
+-require 'net/https'
+-require 'rexml/document'
+-require 'digest/sha1'
+-require 'logger'
+-require 'rfetion/fetion'
+-require 'rfetion/contact'
++require File.dirname(__FILE__) + '/rfetion/fetion'
++require File.dirname(__FILE__) + '/rfetion/contact'
+diff --git a/lib/rfetion/fetion.rb b/lib/rfetion/fetion.rb
+index d6412003fd0f5dc6acec3afa54f2fbb334e474a4..95b4ec4e4279356a9227e8fae74f187a3da6c23b 100644
+--- a/lib/rfetion/fetion.rb
++++ b/lib/rfetion/fetion.rb
+@@ -1,3 +1,12 @@
++require 'rubygems'
++require 'guid'
++require 'time'
++require 'net/http'
++require 'net/https'
++require 'nokogiri'
++require 'digest/sha1'
++require 'logger'
++
+ class FetionException < Exception
+ end
+ 
+@@ -135,14 +144,14 @@ class Fetion
+ 
+     @ssic = $1
+     @logger.debug response.body
+-    doc = REXML::Document.new(response.body)
++    doc = Nokogiri::XML(response.body)
+     results = doc.root
+-    @status_code = results.attributes["status-code"]
++    @status_code = results["status-code"]
+     user = results.children.first
+-    @user_status = user.attributes['user-status']
+-    @uri = user.attributes['uri']
+-    @mobile_no = user.attributes['mobile-no']
+-    @user_id = user.attributes['user-id']
++    @user_status = user['user-status']
++    @uri = user['uri']
++    @mobile_no = user['mobile-no']
++    @user_id = user['user-id']
+     if @uri =~ /sip:(\d+)@(.+);/
+       @sid = $1
+       @domain = $2
+@@ -223,9 +232,9 @@ class Fetion
+     raise FetionException.new("Fetion Error: Get buddy list error") unless response.is_a? Net::HTTPSuccess
+ 
+     response.body.scan(%r{<results>.*?</results>}).each do |results|
+-      doc = REXML::Document.new(results)
+-      doc.elements.each("results/contacts/allow-list/contact") do |contact|
+-        @buddies << {:uri => contact.attributes["uri"]}
++      doc = Nokogiri::XML(results)
++      doc.root.xpath("/results/contacts/allow-list/contact").each do |contact|
++        @buddies << {:uri => contact["uri"]}
+       end
+     end
+     @logger.debug "buddies: #{@buddies.inspect}"
+@@ -250,10 +259,10 @@ class Fetion
+     end
+ 
+     response.body.scan(%r{<results>.*?</results>}).each do |results|
+-      doc = REXML::Document.new(results)
+-      doc.elements.each("results/contacts/contact") do |contact|
+-        attrs = contact.children.size == 0 ? {} : contact.children.first.attributes
+-        @contacts << Contact.new(contact.attributes["uri"], attrs)
++      doc = Nokogiri::XML(results)
++      doc.root.xpath("/results/contacts/contact").each do |contact|
++        attrs = contact.children.size == 0 ? {} : contact.children.first
++        @contacts << Contact.new(contact["uri"], attrs)
+       end
+     end
+     @logger.debug @contacts.inspect
+@@ -297,10 +306,8 @@ class Fetion
+     response = curl_exec(next_url, @ssic, FETION_SIPP)
+     raise FetionException.new("Fetion Error: Get personal info error") unless response.is_a? Net::HTTPSuccess
+ 
+-    doc = REXML::Document.new(response.body.chomp(FETION_SIPP))
+-    doc.elements.each('results/personal') do |person|
+-      @person = person.attributes
+-    end
++    doc = Nokogiri::XML(response.body.chomp(FETION_SIPP))
++    @person = doc.root.xpath('/results/personal').first
+     @logger.info "fetion get personal info success"
+   end
+ 
+-- 
+1.5.4.3
+
