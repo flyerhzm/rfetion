@@ -69,6 +69,40 @@ class Fetion
     end
     fetion.logout
   end
+  
+  # options
+  #   mobile_no
+  #   sid
+  #   password
+  #   receivers
+  #   content
+  #   logger_level
+  def Fetion.send_msg(options)
+    fetion = Fetion.new
+    fetion.logger_level = options[:logger_level] || Logger::INFO
+    fetion.mobile_no = options[:mobile_no]
+    fetion.sid = options[:sid]
+    fetion.password = options[:password]
+    fetion.login
+    fetion.register
+    receivers = options[:receivers]
+    content = options[:content]
+    if receivers
+      receivers = Array(receivers)
+      receivers.collect! {|receiver| receiver.to_s}
+      fetion.get_buddy_list
+      fetion.get_contacts_info
+      fetion.contacts.each do |contact|
+        if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
+          fetion.send_msg(contact.uri, content)
+        end
+      end
+      fetion.send_msg(fetion.uri, content) if  receivers.any? { |receiver| fetion.self? receiver }
+    else
+      fetion.send_msg(fetion.uri, content)
+    end
+    fetion.logout
+  end
 
   # options
   #   mobile_no
@@ -268,6 +302,16 @@ class Fetion
     end
     @logger.debug @contacts.inspect
     @logger.info "fetion get contacts info success"
+  end
+
+  def send_msg(receiver, content)
+    @logger.info "fetion SendMsg to #{receiver}"
+    msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '3 M', 'T' => receiver, 'C' => 'text/html-fragment', 'K' => 'SaveHistory'}, content) + FETION_SIPP
+    curl_exec(next_url, @ssic, msg)
+    response = curl_exec(next_url, @ssic, FETION_SIPP)
+
+    raise FetionException.new("Fetion Error: Send sms error") unless response.is_a? Net::HTTPSuccess
+    @logger.info "fetion SendMsg to #{receiver} success"
   end
 
   def send_sms(receiver, content)

@@ -21,10 +21,11 @@ gem install rfetion
 
 h2. Usage
 
-* send sms to friends or yourself
+* send sms or msg to friends or yourself
 
 <pre><code>
 Fetion.send_sms(options)
+Fetion.send_msg(options)
 </code></pre>
 
 options can be:
