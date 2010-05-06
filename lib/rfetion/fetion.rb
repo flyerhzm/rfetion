@@ -5,7 +5,7 @@ require 'net/http'
 require 'net/https'
 require 'nokogiri'
 require 'digest/sha1'
-require 'digest/md5'
+require 'openssl'
 require 'logger'
 
 class FetionException < Exception
@@ -16,14 +16,19 @@ class Fetion
   attr_reader :uri, :contacts
 
   FETION_URL = 'http://221.130.44.194/ht/sd.aspx'
-  FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignIn.aspx'
-  FETION_CONFIG_URL = 'http://nav.fetion.com.cn/nav/getsystemconfig.aspx'
-  FETION_SIPP = 'SIPP'
-  @nonce = nil
+  FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
+
+  SIPP = 'SIPP'
+  USER_AGENT = "IIC2.0/PC 3.6.2020"
+  VERSION = "3.6.2020"
+  SIPC_HEADER = "R fetion.com.cn SIP-C/4.0"
+  DOMAIN = "fetion.com.cn"
 
   def initialize
-    @next_call = 0
+    @call = 0
+    @alive = 0
     @seq = 0
+    @alive_call = 0
     @buddies = []
     @contacts = []
     @logger = Logger.new(STDOUT)
@@ -164,14 +169,15 @@ class Fetion
   def login
     @logger.info "fetion login"
     if @mobile_no
-      uri = URI.parse(FETION_LOGIN_URL + "?mobileno=#{@mobile_no}&pwd=#{@password}")
+      url = FETION_LOGIN_URL.sub('%mobileno%', @mobile_no).sub('sid=%sid%', '')
     else
-      uri = URI.parse(FETION_LOGIN_URL + "?sid=#{@sid}&pwd=#{@password}")
+      url = FETION_LOGIN_URL.sub('%sid%', @sid).sub('%mobileno%', '')
     end
+    uri = URI.parse(url.sub('%digest%', Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}")))
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => 'IIC2.0/PC 3.2.0540'}
+    headers = {'User-Agent' => USER_AGENT}
     response = http.request_get(uri.request_uri, headers)
 
     raise FetionException.new('Fetion Error: Login failed.') unless response.is_a? Net::HTTPSuccess
@@ -189,7 +195,6 @@ class Fetion
     @user_id = user['user-id']
     if @uri =~ /sip:(\d+)@(.+);/
       @sid = $1
-      @domain = $2
     end
     @logger.debug "ssic: " + @ssic
     @logger.debug "status_code: " + @status_code
@@ -198,64 +203,61 @@ class Fetion
     @logger.debug "mobile_no: " + @mobile_no
     @logger.debug "user_id: " + @user_id
     @logger.debug "sid: " + @sid
-    @logger.debug "domain: " + @domain
     @logger.info "fetion login success"
   end
 
   def register
     @logger.info "fetion http register"
     call = next_call
-    arg = '<args><device type="PC" version="284571220" client-version="3.3.0370" /><caps value="simple-im;im-session;temp-group;personal-group" /><events value="contact;permission;system-message;personal-group" /><user-info attributes="all" /><presence><basic value="400" desc="" /></presence></args>'
 
-    # get nonce, it failed, try again 16s later
-    begin
-      register_first(call, arg)
-    rescue FetionException
-      sleep 16
-      register_first(call, arg)
-    end
+    register_first(call)
+    register_second(call)
 
-    begin
-      register_second(call, arg)
-    rescue FetionException
-      sleep 16
-      register_second(call, arg)
-    end
     @logger.info "fetion http register success"
   end
 
-  def register_first(call, arg)
+  def register_first(call)
     @logger.debug "fetion http register first"
 
-    curl_exec(next_url, @ssic, FETION_SIPP)
-
-    msg = sip_create("R fetion.com.cn SIP-C/2.0", {'F' => @sid, 'I' => call, 'Q' => '1 R'}, arg) + FETION_SIPP
-    curl_exec(next_url('i'), @ssic, msg)
-
-    response = curl_exec(next_url, @ssic, FETION_SIPP)
-    raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(\w+)"/
+    curl_exec(SIPP, next_url('i'))
+    curl_exec(sip_create('F' => @sid, 'I' => call, 'CN' => ::Guid.new.hexdigest.upcase, 'CL' => %Q|type="pc" ,version="#{VERSION}"|))
+    response = pulse
+    raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
       
     @nonce = $1
-    @salt =  "777A6D03"
-    @cnonce = calc_cnonce
-    @response = calc_response
+    @key = $2
+    @signature = $3
+
+    @reponse = calc_response
 
     @logger.debug "nonce: #{@nonce}"
-    @logger.debug "salt: #{@salt}"
-    @logger.debug "cnonce: #{@cnonce}"
+    @logger.debug "key: #{@key}"
+    @logger.debug "signature: #{@signature}"
     @logger.debug "response: #{@response}"
     @logger.debug "fetion http register first success"
   end
 
-  def register_second(call, arg)
+  def register_second(call)
     @logger.debug "fetion http register second"
 
-    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => '2 R', 'A' => "Digest algorithm=\"SHA1-sess\",response=\"#{@response}\",cnonce=\"#{@cnonce}\",salt=\"#{@salt}\""}, arg) + FETION_SIPP
+    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="1ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
+    curl_exec(sip_create({'F' => @sid, 'I' => call, 'A' => %Q|Digest response="#{@response}"|, 'AK' => 'ak-value'}, body))
+    response = pulse
+
+    raise FetionException.new('Fetion Error: Register failed.') unless response.is_a? Net::HTTPSuccess
+    @logger.debug "fetion http register second success"
+  end
+
+
+  def keep_alive
+    @logger.debug "fetion keep alive"
+
+    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => call, 'Q' => "#{next_alive} R"}) + FETION_SIPP
     curl_exec(next_url, @ssic, msg)
     response = curl_exec(next_url, @ssic, FETION_SIPP)
 
     raise FetionException.new('Fetion Error: Register failed.') unless response.is_a? Net::HTTPSuccess
-    @logger.debug "fetion http register second success"
+    @logger.debug "fetion keep alive success"
   end
 
   def get_buddy_list
@@ -393,14 +395,17 @@ class Fetion
     @logger.info "fetion logout success"
   end
 
-  def curl_exec(url, ssic, body)
+  def pulse
+    curl_exec(SIPP)
+  end
+
+  def curl_exec(body='', url=next_url)
     @logger.debug "fetion curl exec"
     @logger.debug "url: #{url}"
-    @logger.debug "ssic: #{ssic}"
     @logger.debug "body: #{body}"
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
-    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => 'IIC2.0/PC 3.2.0540', 'Cookie' => "ssic=#{@ssic}"}
+    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => USER_AGENT, 'Cookie' => "ssic=#{@ssic}", 'Connection' => 'Keep-Alive', 'Content-Length' => body.length.to_s}
     response = http.request_post(uri.request_uri, body, headers)
 
     @logger.debug "response: #{response.inspect}"
@@ -409,41 +414,41 @@ class Fetion
     response
   end
 
-  def sip_create(invite, fields, arg)
-    sip = invite + "\r\n"
+  def sip_create(fields, body='')
+    sip = SIPC_HEADER + "\r\n"
     fields.each {|k, v| sip += "#{k}: #{v}\r\n"}
-    sip += "L: #{arg.size}\r\n\r\n#{arg}"
-    @logger.debug "sip message: #{sip}"
+    sip += "Q: #{next_alive} R\r\n\r\n#{body}#{SIPP}"
     sip
   end
 
-  def calc_response
-    str = [hash_password[8..-1]].pack("H*")
-    key = Digest::SHA1.digest("#{@sid}:#{@domain}:#{str}")
-
-    h1 = Digest::MD5.hexdigest("#{key}:#{@nonce}:#{@cnonce}").upcase
-    h2 = Digest::MD5.hexdigest("REGISTER:#{@sid}").upcase
-    
-    Digest::MD5.hexdigest("#{h1}:#{@nonce}:#{h2}").upcase
-  end
-
-  def calc_cnonce
-    Digest::MD5.hexdigest(@guid).upcase
-  end
-
-  def hash_password
-    salt = "#{0x77.chr}#{0x7A.chr}#{0x6D.chr}#{0x03.chr}"
-    src = salt + Digest::SHA1.digest(@password)
-    '777A6D03' + Digest::SHA1.hexdigest(src).upcase
-  end
-
   def next_url(t = 's')
-    @seq += 1
-    FETION_URL + "?t=#{t}&i=#{@seq}"
+    FETION_URL + "?t=#{t}&i=#{next_seq}"
   end
 
   def next_call
-    @next_call += 1
+    @call += 1
+  end
+
+  def next_seq
+    @seq += 1
+  end
+
+  def next_alive
+    @alive += 1
+  end
+
+  def calc_response
+    encrypted_password = Digest::SHA1.hexdigest([@user_id.to_i].pack("V*") + [Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}")].pack("H*"))
+    rsa_result = "4A026855890197CFDF768597D07200B346F3D676411C6F87368B5C2276DCEDD2"
+    str = @nonce + [encrypted_password].pack("H*") + [rsa_result].pack("H*")
+    rsa_key = OpenSSL::PKey::RSA.new
+    exponent = OpenSSL::BN.new @key[-6..-1].hex.to_s
+    modulus = OpenSSL::BN.new @key[0...-6].hex.to_s
+    rsa_key.e = exponent
+    rsa_key.n = modulus
+    rsa_key.public_key
+
+    response_str = rsa_key.public_encrypt(str).unpack("H*").first.upcase
   end
   
   def send_command
