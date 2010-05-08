@@ -1,5 +1,6 @@
-class SipcMessage
+require 'guid'
 
+class SipcMessage
   def self.register_first(fetion)
     sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '1 R', :CN => ::Guid.new.hexdigest.upcase, :CL => %Q|type="pc" ,version="#{Fetion::VERSION}"|, :with_l => false)
   end

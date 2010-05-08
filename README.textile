@@ -37,10 +37,10 @@ options can be:
 <code>logger_level</code>
 
 
-* send schedule sms to friends
+* set schedule sms to friends
 
 <pre><code>
-Fetion.schedule_sms(options)
+Fetion.set_schedule_sms(options)
 </code></pre>
 
 options can be:
