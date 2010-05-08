@@ -15,13 +15,12 @@ class Fetion
   attr_accessor :mobile_no, :sid, :password
   attr_reader :uri, :contacts
 
-  FETION_URL = 'http://221.130.44.194/ht/sd.aspx'
+  FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
 
   SIPP = 'SIPP'
   USER_AGENT = "IIC2.0/PC 3.6.2020"
   VERSION = "3.6.2020"
-  SIPC_HEADER = "R fetion.com.cn SIP-C/4.0"
   DOMAIN = "fetion.com.cn"
 
   def initialize
@@ -33,12 +32,23 @@ class Fetion
     @contacts = []
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
-    @cat = true
     @guid = ::Guid.new.to_s
   end
   
   def logger_level=(level)
     @logger.level = level
+  end
+
+  def Fetion.open(options, &block)
+    fetion = Fetion.new
+    fetion.logger_level = options[:logger_level] || Logger::INFO
+    fetion.mobile_no = options[:mobile_no]
+    fetion.sid = options[:sid]
+    fetion.password = options[:password]
+    fetion.login
+    fetion.register
+    fetion.instance_eval &block
+    fetion.logout
   end
 
   # options
@@ -49,30 +59,23 @@ class Fetion
   #   content
   #   logger_level
   def Fetion.send_sms(options)
-    fetion = Fetion.new
-    fetion.logger_level = options[:logger_level] || Logger::INFO
-    fetion.mobile_no = options[:mobile_no]
-    fetion.sid = options[:sid]
-    fetion.password = options[:password]
-    fetion.login
-    fetion.register
-    receivers = options[:receivers]
-    content = options[:content]
-    if receivers
-      receivers = Array(receivers)
-      receivers.collect! {|receiver| receiver.to_s}
-      fetion.get_buddy_list
-      fetion.get_contacts_info
-      fetion.contacts.each do |contact|
-        if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
-          fetion.send_sms(contact.uri, content)
+    Fetion.open(options) do
+      receivers = options[:receivers]
+      content = options[:content]
+      if receivers
+        receivers = Array(receivers)
+        receivers.collect! {|receiver| receiver.to_s}
+        get_contacts
+        contacts.each do |contact|
+          if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
+            send_sms(contact.uri, content)
+          end
         end
+        send_sms(uri, content) if  receivers.any? { |receiver| self? receiver }
+      else
+        send_sms(uri, content)
       end
-      fetion.send_sms(fetion.uri, content) if  receivers.any? { |receiver| fetion.self? receiver }
-    else
-      fetion.send_sms(fetion.uri, content)
     end
-    fetion.logout
   end
   
   # options
@@ -171,7 +174,7 @@ class Fetion
     if @mobile_no
       url = FETION_LOGIN_URL.sub('%mobileno%', @mobile_no).sub('sid=%sid%', '')
     else
-      url = FETION_LOGIN_URL.sub('%sid%', @sid).sub('%mobileno%', '')
+      url = FETION_LOGIN_URL.sub('%sid%', @sid).sub('mobileno=%mobileno%', '')
     end
     uri = URI.parse(url.sub('%digest%', Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}")))
     http = Net::HTTP.new(uri.host, uri.port)
@@ -220,7 +223,7 @@ class Fetion
     @logger.debug "fetion http register first"
 
     curl_exec(SIPP, next_url('i'))
-    curl_exec(sip_create('F' => @sid, 'I' => call, 'CN' => ::Guid.new.hexdigest.upcase, 'CL' => %Q|type="pc" ,version="#{VERSION}"|))
+    curl_exec(sip_create(:command => 'R', :I => call, :Q => '1 R', :CN => ::Guid.new.hexdigest.upcase, :CL => %Q|type="pc" ,version="#{VERSION}"|, :with_l => false))
     response = pulse
     raise FetionException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
       
@@ -228,7 +231,7 @@ class Fetion
     @key = $2
     @signature = $3
 
-    @reponse = calc_response
+    @response = calc_response
 
     @logger.debug "nonce: #{@nonce}"
     @logger.debug "key: #{@key}"
@@ -240,14 +243,37 @@ class Fetion
   def register_second(call)
     @logger.debug "fetion http register second"
 
-    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="1ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
-    curl_exec(sip_create({'F' => @sid, 'I' => call, 'A' => %Q|Digest response="#{@response}"|, 'AK' => 'ak-value'}, body))
+    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
+    curl_exec(sip_create(:command => 'R', :I => call, :Q => '2 R', :A => %Q|Digest response="#{@response}",algorithm="SHA1-sess-v4"|, :AK => 'ak-value', :body => body))
     response = pulse
 
     raise FetionException.new('Fetion Error: Register failed.') unless response.is_a? Net::HTTPSuccess
+
+    parse_buddies(response.body)
     @logger.debug "fetion http register second success"
   end
 
+  def get_contacts
+    @logger.debug "fetion get contacts"
+
+    pulse
+    body = %Q|<args><group-list attributes="name;identity" /></args>|
+    curl_exec(sip_create(:command => 'S', :I => next_call, :Q => '1 S', :N => 'PGGetGroupList', :body => body))
+
+    body = %Q|<args><subscription self="v4default;mail-count" buddy="v4default" version="0" /></args>|
+    response = curl_exec(sip_create(:command => 'SUB', :I => next_call, 'Q' => '1 SUB', :N => 'PresenceV4', :body => body))
+
+    body = %Q|<args><topic-list /></args>|
+    response = curl_exec(sip_create(:command => 'S', :I => next_call, :Q => '1 S', :N => 'PGGetGroupTopic', :body => body))
+    raise FetionException.new('Fetion Error: get contacts failed.') unless response.is_a? Net::HTTPSuccess
+    parse_contacts(response.body)
+
+    body = %Q|<args><contacts version="0" /></args>|
+    response = curl_exec(sip_create(:command => 'S', :I => next_call, :Q => '1 S', :N => 'GetAddressListV4', :body => body))
+    response = pulse
+
+    @logger.debug "fetion get contacts success"
+  end
 
   def keep_alive
     @logger.debug "fetion keep alive"
@@ -268,18 +294,14 @@ class Fetion
     response = curl_exec(next_url, @ssic, FETION_SIPP)
     raise FetionException.new("Fetion Error: Get buddy list error") unless response.is_a? Net::HTTPSuccess
 
-    response.body.scan(%r{<results>.*?</results>}).each do |results|
-      doc = Nokogiri::XML(results)
-      doc.root.xpath("/results/contacts/allow-list/contact").each do |contact|
-        @buddies << {:uri => contact["uri"]}
-      end
-    end
     @logger.debug "buddies: #{@buddies.inspect}"
     @logger.info "fetion get buddy list success"
   end
 
   def get_contacts_info
     @logger.info "fetion get contacts info"
+
+    pulse
     arg = '<args><contacts attributes="provisioning;impresa;mobile-no;nickname;name;gender;portrait-crc;ivr-enabled" extended-attributes="score-level">'
     @buddies.each do |buddy|
       arg += "<contact uri=\"#{buddy[:uri]}\" />"
@@ -317,13 +339,12 @@ class Fetion
   end
 
   def send_sms(receiver, content)
-    @logger.info "fetion #{send_command} to #{receiver}"
-    msg = sip_create('M fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 M', 'T' => receiver, 'N' => send_command}, content) + FETION_SIPP
-    curl_exec(next_url, @ssic, msg)
-    response = curl_exec(next_url, @ssic, FETION_SIPP)
+    @logger.info "fetion SendCatSMS to #{receiver}"
+    curl_exec(sip_create(:command => 'M', :I => next_call, :Q => '1 M', :T => receiver, :N => 'SendCatSMS', :body => content))
+    response = pulse
 
     raise FetionException.new("Fetion Error: Send sms error") unless response.is_a? Net::HTTPSuccess
-    @logger.info "fetion #{send_command} to #{receiver} success"
+    @logger.info "fetion SendCatSMS to #{receiver} success"
   end
 
   def schedule_sms(receivers, content, time)
@@ -387,12 +408,33 @@ class Fetion
 
   def logout
     @logger.info "fetion logout"
-    msg = sip_create('R fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => 1, 'Q' => '3 R', 'X' => 0}, '') + FETION_SIPP
-    curl_exec(next_url, @ssic, msg)
-    response = curl_exec(next_url, @ssic, FETION_SIPP)
+
+    @ssic = 0
+    curl_exec(sip_create(:command => 'S', :I => 1, :Q => '3 R', :X => 0))
+    response = pulse
 
     # raise FetionException.new("Fetion Error: Logout error") unless response.is_a? Net::HTTPSuccess
     @logger.info "fetion logout success"
+  end
+  
+  def parse_buddies(response_body)
+    response_body.scan(%r{<results>.*?</results>}).each do |results|
+      doc = Nokogiri::XML(results)
+      doc.root.xpath("/results//buddies/b").each do |buddy|
+        @buddies << {:uri => buddy["u"]}
+      end
+    end
+    @logger.debug "buddies: #{@buddies.inspect}"
+  end
+
+  def parse_contacts(response_body)
+    response_body.scan(%r{<events>.*?</events>}).each do |results|
+      doc = Nokogiri::XML(results)
+      doc.root.xpath("/events//c/p").each do |person|
+        @contacts << Contact.new(person) if person['sid']
+      end
+    end
+    @logger.debug "contacts: #{@contacts.inspect}"
   end
 
   def pulse
@@ -405,7 +447,7 @@ class Fetion
     @logger.debug "body: #{body}"
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
-    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => USER_AGENT, 'Cookie' => "ssic=#{@ssic}", 'Connection' => 'Keep-Alive', 'Content-Length' => body.length.to_s}
+    headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => USER_AGENT, 'Cookie' => "ssic=#{@ssic}", 'Content-Length' => body.length.to_s}
     response = http.request_post(uri.request_uri, body, headers)
 
     @logger.debug "response: #{response.inspect}"
@@ -414,10 +456,20 @@ class Fetion
     response
   end
 
-  def sip_create(fields, body='')
-    sip = SIPC_HEADER + "\r\n"
-    fields.each {|k, v| sip += "#{k}: #{v}\r\n"}
-    sip += "Q: #{next_alive} R\r\n\r\n#{body}#{SIPP}"
+  # command       one of 'R', 'S'
+  # with_l        display L or not
+  # body          sipc body
+  def sip_create(options)
+    options = {:body => '', :with_l => true}.merge(options)
+    body = options.delete(:body)
+    with_l = options.delete(:with_l)
+
+    sorted_key = [:I, :Q, :CN, :CL, :A, :AK, :X, :T, :N]
+    sip = "#{options.delete(:command)} fetion.com.cn SIP-C/4.0\r\n"
+    sip += "F: #@sid" + "\r\n"
+    sorted_key.each {|k| sip += "#{k}: #{options[k]}\r\n" if options[k]}
+    sip += "L: #{body == '' ? 4 : body.size}\r\n" if with_l
+    sip += "\r\n#{body}#{SIPP}"
     sip
   end
 
@@ -446,15 +498,10 @@ class Fetion
     modulus = OpenSSL::BN.new @key[0...-6].hex.to_s
     rsa_key.e = exponent
     rsa_key.n = modulus
-    rsa_key.public_key
 
-    response_str = rsa_key.public_encrypt(str).unpack("H*").first.upcase
+    rsa_key.public_encrypt(str).unpack("H*").first.upcase
   end
   
-  def send_command
-    @cat ? 'SendCatSMS' : 'SendSMS'
-  end
-
   def self?(mobile_or_sid)
     mobile_or_sid == @mobile_no or mobile_or_sid == @sid
   end

@@ -1,11 +1,11 @@
 class Contact
-  attr_reader :uri, :mobile_no, :nickname, :impresa, :nickname
+  attr_reader :sid, :uri, :mobile_no, :nickname, :impresa, :nickname
 
-  def initialize(uri, attrs)
-    @uri = uri
-    @mobile_no = attrs["mobile-no"]
-    @nickname = attrs["nickname"]
-    @impresa = attrs["impresa"]
-    @nickname = attrs["nickname"]
+  def initialize(attrs)
+    @sid = attrs["sid"]
+    @uri = attrs["su"]
+    @mobile_no = attrs["m"]
+    @nickname = attrs["n"]
+    @impresa = attrs["i"]
   end
 end
