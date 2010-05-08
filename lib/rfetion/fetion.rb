@@ -1,4 +1,3 @@
-require 'rubygems'
 require 'guid'
 require 'time'
 require 'net/http'
@@ -28,7 +27,7 @@ class Fetion
     @contacts = []
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
-    @guid = ::Guid.new.to_s
+    @guid = Guid.new.to_s
   end
   
   def logger_level=(level)
@@ -211,48 +210,6 @@ class Fetion
     pulse
   end
 
-  def get_buddy_list
-    @logger.info "fetion get buddy list"
-    arg = '<args><contacts><buddy-lists /><buddies attributes="all" /><mobile-buddies attributes="all" /><chat-friends /><blacklist /><allow-list /></contacts></args>'
-    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactList'}, arg) + FETION_SIPP
-    curl_exec(next_url, @ssic, msg)
-    response = curl_exec(next_url, @ssic, FETION_SIPP)
-    raise FetionException.new("Fetion Error: Get buddy list error") unless response.is_a? Net::HTTPSuccess
-
-    @logger.debug "buddies: #{@buddies.inspect}"
-    @logger.info "fetion get buddy list success"
-  end
-
-  def get_contacts_info
-    @logger.info "fetion get contacts info"
-
-    pulse
-    arg = '<args><contacts attributes="provisioning;impresa;mobile-no;nickname;name;gender;portrait-crc;ivr-enabled" extended-attributes="score-level">'
-    @buddies.each do |buddy|
-      arg += "<contact uri=\"#{buddy[:uri]}\" />"
-    end
-    arg += '</contacts></args>'
-
-    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetContactsInfo'}, arg) + FETION_SIPP
-    curl_exec(next_url, @ssic, msg)
-    while true do
-      sleep 1
-      response = curl_exec(next_url, @ssic, FETION_SIPP)
-      raise FetionException.new("Fetion Error: Get contacts info error") unless response.is_a? Net::HTTPSuccess
-      break if response.body.size > FETION_SIPP.size
-    end
-
-    response.body.scan(%r{<results>.*?</results>}).each do |results|
-      doc = Nokogiri::XML(results)
-      doc.root.xpath("/results/contacts/contact").each do |contact|
-        attrs = contact.children.size == 0 ? {} : contact.children.first
-        @contacts << Contact.new(contact["uri"], attrs)
-      end
-    end
-    @logger.debug @contacts.inspect
-    @logger.info "fetion get contacts info success"
-  end
-
   def send_msg(receiver, content)
     @logger.info "fetion send msg to #{receiver}"
     curl_exec(SipcMessage.send_msg(self, receiver, content))
@@ -287,19 +244,6 @@ class Fetion
     @logger.info "fetion schedule send sms to #{receivers.join(', ')} success"
   end
 
-  def get_personal_info
-    @logger.info "fetion get personal info"
-    arg = %Q{<args><personal attributes="all" /><services version="" attributes="all" /><config version="96" attributes="all" /><mobile-device attributes="all" /></args>}
-    msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'GetPersonalInfo'}, arg) + FETION_SIPP
-    curl_exec(next_url, @ssic, msg)
-    response = curl_exec(next_url, @ssic, FETION_SIPP)
-    raise FetionException.new("Fetion Error: Get personal info error") unless response.is_a? Net::HTTPSuccess
-
-    doc = Nokogiri::XML(response.body.chomp(FETION_SIPP))
-    @person = doc.root.xpath('/results/personal').first
-    @logger.info "fetion get personal info success"
-  end
-
   # options
   #   friend_mobile
   #   friend_sip
@@ -327,7 +271,6 @@ class Fetion
   end
 
   def logout
-    @ssic = 0
     curl_exec(SipcMessage.logout(self))
     response = pulse
 
