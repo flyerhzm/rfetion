@@ -1,3 +1,4 @@
 lib/test.rb
 pkg/**
 *.swp
+block_list

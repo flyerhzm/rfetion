@@ -323,6 +323,39 @@ EOF
     end
   end
 
+  describe "get contact info" do
+    before :each do
+      @fetion.instance_variable_set(:@seq, 11)
+    end
+
+    it "should get contact info" do
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => 'SIPP')
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 11
+Q: 1 S
+L: 166
+
+<results><contact uri="tel:15800681507" version="0" user-id="625007505" mobile-no="15800681507" basic-service-status="0" carrier="CMCC" carrier-status="0"/></results>SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
+      @fetion.get_contact_info(:friend_mobile => '15800681507')
+    end
+
+    it "should get exception when no such user" do
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => 'SIPP')
+      response_body =<<-EOF
+SIP-C/4.0 404 Not Found
+I: 35
+Q: 1 S
+
+SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
+      lambda {@fetion.get_contact_info(:friend_mobile => '15800681505')}.should raise_exception(Fetion::NoUserException)
+    end
+  end
+
   describe "logout" do
     before :each do
       @fetion.instance_variable_set(:@seq, 12)

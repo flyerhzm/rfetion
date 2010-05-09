@@ -233,8 +233,8 @@ class Fetion
     time = time.is_a?(Time) ? time : Time.parse(time)
     now = Time.now
     one_year = Time.local(now.year + 1, now.month, now.day, now.hour, now.min, now.sec)
-    raise FetionException.new("Can't schedule send sms to more than 64 receivers") if receivers.size > 64
-    raise FetionException.new("Schedule time must between #{(now + 600).strftime('%Y-%m-%d %H:%M:%S')} and #{one_year.strftime('%Y-%m-%d %H:%M:%S')}") if time < (now + 600) or time > one_year
+    raise SetScheduleSmsException.new("Can't schedule send sms to more than 64 receivers") if receivers.size > 64
+    raise SetScheduleSmsException.new("Schedule time must between #{(now + 600).strftime('%Y-%m-%d %H:%M:%S')} and #{one_year.strftime('%Y-%m-%d %H:%M:%S')}") if time < (now + 600) or time > one_year
     @logger.info "fetion schedule send sms to #{receivers.join(', ')}"
     
     curl_exec(SipcMessage.set_schedule_sms(self, receivers, content, time.strftime('%Y-%m-%d %H:%M:%S')))
@@ -255,19 +255,23 @@ class Fetion
     response = pulse
     raise AddBuddyException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
 
-    if response.body =~ /No Subscription/
-      # TODO: no subscription when add buddy
-      raise FetionException.new("Fetion Error: No #{uri}") if options[:friend_sip]
-
-      arg = %Q{<args><contacts><mobile-buddies><mobile-buddy uri="#{uri}" local-name="" buddy-lists="1" desc="#{@person['nickname']}" expose-mobile-no="1" expose-name="1" /></mobile-buddies></contacts></args>}
-      msg = sip_create('S fetion.com.cn SIP-C/2.0', {'F' => @sid, 'I' => next_call, 'Q' => '1 S', 'N' => 'AddMobileBuddy'}, arg) + FETION_SIPP
-      curl_exec(next_url, @ssic, msg)
-      response = curl_exec(next_url, @ssic, FETION_SIPP)
-      raise FetionException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
-
-      raise FetionException.new("Fetion Error: No #{uri}") if response.body =~ /Not Found/
-    end
     @logger.info "fetion send request to add #{uri} as friend success"
+  end
+
+  # options
+  #   mobile_no
+  #   sip
+  def get_contact_info(options)
+    uri = options[:mobile_no] ? "tel:#{options[:mobile_no]}" : "sip:#{options[:sip]}"
+
+    @logger.info "fetion get contact info of #{uri}"
+    curl_exec(SipcMessage.get_contact_info(self, options))
+    response = pulse
+
+    sipc_response = SipcMessage.sipc_response(response.body)
+    raise Fetion::NoUserException.new("Fetion Error: get contact info #{uri} with #{sipc_response.to_s}") unless SipcMessage::OK === sipc_response
+
+    @logger.info "fetion get contact info of #{uri} success"
   end
 
   def logout
@@ -411,10 +415,11 @@ class Fetion
 end
 
 class FetionException < Exception; end
-class Fetion::LoginException < Exception; end
-class Fetion::NoNonceException < Exception; end
-class Fetion::RegisterException < Exception; end
-class Fetion::SendSmsException < Exception; end
-class Fetion::SendMsgException < Exception; end
-class Fetion::SetScheduleSmsException < Exception; end
-class Fetion::AddBuddyException < Exception; end
+class Fetion::LoginException < FetionException; end
+class Fetion::NoNonceException < FetionException; end
+class Fetion::RegisterException < FetionException; end
+class Fetion::SendSmsException < FetionException; end
+class Fetion::SendMsgException < FetionException; end
+class Fetion::SetScheduleSmsException < FetionException; end
+class Fetion::AddBuddyException < FetionException; end
+class Fetion::NoUserException < FetionException; end
