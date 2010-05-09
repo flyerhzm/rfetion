@@ -69,6 +69,12 @@ describe SipcMessage do
     SipcMessage.set_schedule_sms(@fetion, ['sip:638993408@fetion.com.cn;p=2242'], 'test', '2010-05-08 15:50:00').should == sipc_message
   end
 
+  it "should get contact info" do
+    @fetion.call = 10
+    sipc_message = %Q|S fetion.com.cn SIP-C/4.0\r\nF: 730020377\r\nI: 11\r\nQ: 1 S\r\nN: GetContactInfoV4\r\nL: 46\r\n\r\n<args><contact uri="tel:15800681507" /></args>SIPP|
+    SipcMessage.get_contact_info(@fetion, 15800681507).should == sipc_message
+  end
+
   it "should add buddy" do
     @fetion.call = 9
     @fetion.instance_variable_set(:@nickname, 'flyerhzm')

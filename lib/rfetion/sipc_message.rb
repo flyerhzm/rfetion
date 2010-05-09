@@ -49,6 +49,11 @@ class SipcMessage
     sipc_create(:command => 'S', :F => fetion.sid, :I => fetion.next_call, :Q => '1 S', :N => 'AddBuddyV4', :body => body)
   end
 
+  def self.get_contact_info(fetion, mobile_no)
+    body = %Q|<args><contact uri="tel:#{mobile_no}" /></args>|
+    sipc_create(:command => 'S', :F => fetion.sid, :I => fetion.next_call, :Q => '1 S', :N => 'GetContactInfoV4', :body => body)
+  end
+
   def self.logout(fetion)
     sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '3 R', :X => 0, :with_l => false)
   end
@@ -68,4 +73,32 @@ class SipcMessage
     sipc += "\r\n#{body}#{Fetion::SIPP}"
     sipc
   end
+
+  def self.sipc_response(http_response_body)
+    sipc, code, message = http_response_body.to_a.first.split(' ')
+    RESPONSES[code.to_i].new(code, message)
+  end
+
+  class Response
+    attr_reader :code, :message
+
+    def initialize(code, message)
+      @code = code
+      @message = message
+    end
+
+    def to_s
+      "#@code #@message"
+    end
+  end
+
+  class OK < Response; end
+  class NotFound < Response; end
+  class ExtentionRequired < Response; end
+
+  RESPONSES = {
+    200 => SipcMessage::OK,
+    404 => SipcMessage::NotFound,
+    421 => SipcMessage::ExtentionRequired
+  }
 end
