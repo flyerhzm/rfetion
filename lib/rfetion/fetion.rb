@@ -20,9 +20,7 @@ class Fetion
   DOMAIN = "fetion.com.cn"
 
   def initialize
-    @call = 0
-    @alive = 0
-    @seq = 0
+    @call = @alive = @seq = 0
     @buddies = []
     @contacts = []
     @logger = Logger.new(STDOUT)
@@ -146,6 +144,8 @@ class Fetion
   end
 
   def login
+    @logger.info "fetion login"
+
     if @mobile_no
       url = FETION_LOGIN_URL.sub('%mobileno%', @mobile_no).sub('sid=%sid%', '')
     else
@@ -157,74 +157,82 @@ class Fetion
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     headers = {'User-Agent' => USER_AGENT}
     response = http.request_get(uri.request_uri, headers)
+    parse_ssic(response)
 
-    raise FetionException.new('Fetion Error: Login failed.') unless response.is_a? Net::HTTPSuccess
-
-    parse_login_response(response)
+    @logger.info "fetion login success"
   end
 
   def register
+    @logger.info "fetion register"
+
     call = next_call
     register_first
     register_second
     call = next_call
+
+    @logger.info "fetion register success"
   end
 
   def register_first
+    @logger.debug "fetion register first"
+
     curl_exec(SIPP, next_url('i'))
     curl_exec(SipcMessage.register_first(self))
     response = pulse
-    raise Fetion::NoNonceException.new("Fetion Error: no nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
-      
-    @nonce = $1
-    @key = $2
-    @signature = $3
-    @response = calc_response
+    parse_nonce(response)
 
-    @logger.debug "nonce: #{@nonce}"
-    @logger.debug "key: #{@key}"
-    @logger.debug "signature: #{@signature}"
-    @logger.debug "response: #{@response}"
+    @logger.debug "fetion register first success"
   end
 
   def register_second
+    @logger.debug "fetion register second"
+
     body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
     curl_exec(SipcMessage.register_second(self))
     response = pulse
+    parse_info(response)
 
-    raise FetionException.new('Fetion Error: Register failed.') unless response.is_a? Net::HTTPSuccess
-
-    parse_info(response.body)
-    parse_buddies(response.body)
+    @logger.debug "fetion register second success"
   end
 
   def get_contacts
+    @logger.info "fetion get contacts"
+
     curl_exec(SipcMessage.get_group_list(self))
 
     response = curl_exec(SipcMessage.presence(self))
     response = curl_exec(SipcMessage.get_group_topic(self))
-    raise FetionException.new('Fetion Error: get contacts failed.') unless response.is_a? Net::HTTPSuccess
-    parse_contacts(response.body)
+    parse_contacts(response)
 
     curl_exec(SipcMessage.get_address_list(self))
     pulse
+
+    @logger.info "fetion get contacts success"
   end
 
   def send_msg(receiver, content)
     @logger.info "fetion send msg to #{receiver}"
+
     curl_exec(SipcMessage.send_msg(self, receiver, content))
     response = pulse
 
-    raise SendMsgException.new("Fetion Error: Send sms error") unless response.is_a? Net::HTTPSuccess
+    raise FetionException.new("Fetion Error: Send msg error") unless Net::HTTPSuccess === response
+    sipc_message = SipcMessage.sipc_response(response.body)
+    raise Fetion::SendMsgException.new("Fetion Error: Send msg error with #{sipc_message}") unless SipcMessage::OK === sipc_message
+
     @logger.info "fetion send msg to #{receiver} success"
   end
 
   def send_sms(receiver, content)
     @logger.info "fetion send cat sms to #{receiver}"
+
     curl_exec(SipcMessage.send_cat_sms(self, receiver, content))
     response = pulse
 
-    raise SendSmsException.new("Fetion Error: Send cat sms error") unless response.is_a? Net::HTTPSuccess
+    raise FetionException.new("Fetion Error: Send cat sms error") unless Net::HTTPSuccess === response
+    sipc_message = SipcMessage.sipc_response(response.body)
+    raise Fetion::SendSmsException.new("Fetion Error: Send cat sms error with #{sipc_message}") unless SipcMessage::Send === sipc_message
+
     @logger.info "fetion send cat sms to #{receiver} success"
   end
 
@@ -240,7 +248,10 @@ class Fetion
     curl_exec(SipcMessage.set_schedule_sms(self, receivers, content, time.strftime('%Y-%m-%d %H:%M:%S')))
     response = pulse
 
-    raise SetScheduleSmsException.new("Fetion Error: Set schedule sms error") unless response.is_a? Net::HTTPSuccess
+    raise FetionException.new("Fetion Error: Set schedule sms error") unless Net::HTTPSuccess === response
+    sipc_message = SipcMessage.sipc_response(response.body)
+    raise Fetion::SetScheduleSmsException.new("Fetion Error: Set schedule sms error with #{sipc_message}") unless SipcMessage::OK === sipc_message
+
     @logger.info "fetion schedule send sms to #{receivers.join(', ')} success"
   end
 
@@ -253,7 +264,9 @@ class Fetion
     @logger.info "fetion send request to add #{uri} as friend"
     curl_exec(SipcMessage.add_buddy(self, options))
     response = pulse
-    raise AddBuddyException.new("Fetion Error: Add buddy error") unless response.is_a? Net::HTTPSuccess
+    raise FetionException.new("Fetion Error: Add buddy error") unless Net::HTTPSuccess === response
+    sipc_message = SipcMessage.sipc_response(response.body)
+    raise Fetion::AddBuddyException.new("Fetion Error: Add buddy error with #{sipc_message}") unless SipcMessage::OK === sipc_message
 
     @logger.info "fetion send request to add #{uri} as friend success"
   end
@@ -268,20 +281,25 @@ class Fetion
     curl_exec(SipcMessage.get_contact_info(self, options))
     response = pulse
 
+    raise FetionException.new("Fetion Error: get contact info error") unless Net::HTTPSuccess === response
     sipc_response = SipcMessage.sipc_response(response.body)
-    raise Fetion::NoUserException.new("Fetion Error: get contact info #{uri} with #{sipc_response.to_s}") unless SipcMessage::OK === sipc_response
+    raise Fetion::NoUserException.new("Fetion Error: get contact info #{uri} with #{sipc_response}") unless SipcMessage::OK === sipc_response
 
     @logger.info "fetion get contact info of #{uri} success"
   end
 
   def logout
+    @logger.info "fetion logout"
+
     curl_exec(SipcMessage.logout(self))
     response = pulse
 
     # raise FetionException.new("Fetion Error: Logout error") unless response.is_a? Net::HTTPSuccess
+    @logger.info "fetion logout success"
   end
 
-  def parse_login_response(response)
+  def parse_ssic(response)
+    raise Fetion::LoginException.new('Fetion Error: Login failed.') unless Net::HTTPSuccess === response
     raise Fetion::LoginException.new('Fetion Error: No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/
 
     @ssic = $1
@@ -306,34 +324,54 @@ class Fetion
     @logger.debug "user_id: " + @user_id
     @logger.debug "sid: " + @sid
   end
+  
+  def parse_nonce(response)
+    raise FetionException.new("Fetion Error: Register first error.") unless Net::HTTPSuccess === response
+    sipc_response = SipcMessage.sipc_response(response.body)
+    raise Fetion::RegisterException.new("Fetion Error: Register first should get unauthorized response with #{sipc_response}.") unless SipcMessage::Unauthoried === sipc_response
+    raise Fetion::NoNonceException.new("Fetion Error: No nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
+      
+    @nonce = $1
+    @key = $2
+    @signature = $3
+    @response = calc_response
 
-  def parse_info(response_body)
-    response_body.scan(%r{<results>.*?</results>}).each do |results|
+    @logger.debug "nonce: #{@nonce}"
+    @logger.debug "key: #{@key}"
+    @logger.debug "signature: #{@signature}"
+    @logger.debug "response: #{@response}"
+  end
+
+  def parse_info(response)
+    raise Fetion::FetionException.new("Fetion Error: Register second error.") unless Net::HTTPSuccess === response
+    sipc_response = SipcMessage.sipc_response(response.body)
+    raise Fetion::RegisterException.new("Fetion Error: Register second error with #{sipc_response}.") unless SipcMessage::OK === sipc_response
+
+    response.body.scan(%r{<results>.*?</results>}).each do |results|
       doc = Nokogiri::XML(results)
       personal = doc.root.xpath("/results/user-info/personal").first
       @nickname = personal['nickname']
-    end
-
-    @logger.debug "nickname: #@nickname"
-  end
-  
-  def parse_buddies(response_body)
-    response_body.scan(%r{<results>.*?</results>}).each do |results|
-      doc = Nokogiri::XML(results)
       doc.root.xpath("/results//buddies/b").each do |buddy|
         @buddies << {:uri => buddy["u"]}
       end
     end
+
+    @logger.debug "nickname: #@nickname"
     @logger.debug "buddies: #{@buddies.inspect}"
   end
 
-  def parse_contacts(response_body)
-    response_body.scan(%r{<events>.*?</events>}).each do |results|
+  def parse_contacts(response)
+    raise FetionException.new('Fetion Error: get contacts error.') unless Net::HTTPSuccess === response
+    sipc_response = SipcMessage.sipc_response(response.body)
+    raise Fetion::GetContactsException.new("Fetion Error: get contacts failed with #{sipc_response}.") unless Net::HTTPSuccess === response and SipcMessage::OK === sipc_response
+
+    response.body.scan(%r{<events>.*?</events>}).each do |results|
       doc = Nokogiri::XML(results)
       doc.root.xpath("/events//c/p").each do |person|
         @contacts << Contact.new(person) if person['sid']
       end
     end
+
     @logger.debug "contacts: #{@contacts.inspect}"
   end
 
@@ -388,30 +426,6 @@ class Fetion
   def self?(mobile_or_sid)
     mobile_or_sid == @mobile_no or mobile_or_sid == @sid
   end
-
-  [:login, :register, :get_contacts, :logout].each do |method|
-    class_eval <<-EOF
-      alias_method :origin_#{method}, :#{method}
-
-      def #{method}
-        @logger.info "fetion #{method.to_s.gsub(/_/, ' ')}"
-        origin_#{method}
-        @logger.info "fetion #{method.to_s.gsub(/_/, ' ')} success"
-      end
-    EOF
-  end
-
-  [:register_first, :register_second].each do |method|
-    class_eval <<-EOF
-      alias_method :origin_#{method}, :#{method}
-
-      def #{method}
-        @logger.debug "fetion #{method.to_s.gsub(/_/, ' ')}"
-        origin_#{method}
-        @logger.debug "fetion #{method.to_s.gsub(/_/, ' ')} success"
-      end
-    EOF
-  end
 end
 
 class FetionException < Exception; end
@@ -422,4 +436,5 @@ class Fetion::SendSmsException < FetionException; end
 class Fetion::SendMsgException < FetionException; end
 class Fetion::SetScheduleSmsException < FetionException; end
 class Fetion::AddBuddyException < FetionException; end
+class Fetion::GetContactsException < FetionException; end
 class Fetion::NoUserException < FetionException; end

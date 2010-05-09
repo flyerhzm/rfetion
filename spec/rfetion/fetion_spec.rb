@@ -87,6 +87,7 @@ F: 730020377
 I: 1
 Q: 1 R
 W: Digest algorithm="SHA1-sess-v4",nonce=""
+
 SIPP
 EOF
         FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=3", :body => response_body)

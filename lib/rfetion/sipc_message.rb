@@ -77,6 +77,8 @@ class SipcMessage
   def self.sipc_response(http_response_body)
     sipc, code, message = http_response_body.to_a.first.split(' ')
     RESPONSES[code.to_i].new(code, message)
+  rescue NoMethodError
+    raise FetionException.new("Fetion error: No response to #{code} #{message}")
   end
 
   class Response
@@ -93,11 +95,15 @@ class SipcMessage
   end
 
   class OK < Response; end
+  class Send < Response; end
+  class Unauthoried < Response; end
   class NotFound < Response; end
   class ExtentionRequired < Response; end
 
   RESPONSES = {
     200 => SipcMessage::OK,
+    280 => SipcMessage::Send,
+    401 => SipcMessage::Unauthoried,
     404 => SipcMessage::NotFound,
     421 => SipcMessage::ExtentionRequired
   }
