@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rfetion}
-  s.version = "0.4.8"
+  s.version = "0.5.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Richard Huang"]
-  s.date = %q{2010-04-27}
+  s.date = %q{2010-05-09}
   s.description = %q{rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.}
   s.email = %q{flyerhzm@gmail.com}
   s.executables = ["rfetion", "rfetion"]
@@ -25,13 +25,23 @@ Gem::Specification.new do |s|
      "lib/rfetion/command.rb",
      "lib/rfetion/contact.rb",
      "lib/rfetion/fetion.rb",
-     "rfetion.gemspec"
+     "lib/rfetion/sipc_message.rb",
+     "rfetion.gemspec",
+     "spec/rfetion/fetion_spec.rb",
+     "spec/rfetion/sipc_message_spec.rb",
+     "spec/spec.opts",
+     "spec/spec_helper.rb"
   ]
   s.homepage = %q{http://github.com/flyerhzm/rfetion}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.5}
   s.summary = %q{rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.}
+  s.test_files = [
+    "spec/rfetion/fetion_spec.rb",
+     "spec/rfetion/sipc_message_spec.rb",
+     "spec/spec_helper.rb"
+  ]
 
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
