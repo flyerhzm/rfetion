@@ -211,16 +211,16 @@ class Fetion
   end
 
   def send_msg(receiver, content)
-    @logger.info "fetion send msg to #{receiver}"
+    @logger.info "fetion send cat msg to #{receiver}"
 
-    curl_exec(SipcMessage.send_msg(self, receiver, content))
+    curl_exec(SipcMessage.send_cat_msg(self, receiver, content))
     response = pulse
 
-    raise FetionException.new("Fetion Error: Send msg error") unless Net::HTTPSuccess === response
+    raise FetionException.new("Fetion Error: Send cat msg error") unless Net::HTTPSuccess === response
     sipc_message = SipcMessage.sipc_response(response.body)
-    raise Fetion::SendMsgException.new("Fetion Error: Send msg error with #{sipc_message}") unless SipcMessage::OK === sipc_message
+    raise Fetion::SendMsgException.new("Fetion Error: Send cat msg error with #{sipc_message}") unless SipcMessage::OK === sipc_message
 
-    @logger.info "fetion send msg to #{receiver} success"
+    @logger.info "fetion send cat msg to #{receiver} success"
   end
 
   def send_sms(receiver, content)
@@ -278,7 +278,7 @@ class Fetion
     uri = options[:mobile_no] ? "tel:#{options[:mobile_no]}" : "sip:#{options[:sip]}"
 
     @logger.info "fetion get contact info of #{uri}"
-    curl_exec(SipcMessage.get_contact_info(self, options))
+    curl_exec(SipcMessage.get_contact_info(self, uri))
     response = pulse
 
     raise FetionException.new("Fetion Error: get contact info error") unless Net::HTTPSuccess === response

@@ -34,8 +34,8 @@ class SipcMessage
     sipc_create(:command => 'M', :F => fetion.sid, :I => fetion.next_call, :Q => '1 M', :T => receiver, :N => 'SendCatSMS', :body => content)
   end
 
-  def self.send_msg(fetion, receiver, content)
-    sipc_create(:command => 'M', :F => fetion.sid, :I => fetion.next_call, :Q => '3 M', :T => receiver, :K => 'SaveHistory', :body => content)
+  def self.send_cat_msg(fetion, receiver, content)
+    sipc_create(:command => 'M', :F => fetion.sid, :I => fetion.next_call, :Q => '2 M', :T => receiver, :K => 'SaveHistory', :N => 'CatMsg', :body => content)
   end
 
   def self.set_schedule_sms(fetion, receivers, content, time)
@@ -49,8 +49,8 @@ class SipcMessage
     sipc_create(:command => 'S', :F => fetion.sid, :I => fetion.next_call, :Q => '1 S', :N => 'AddBuddyV4', :body => body)
   end
 
-  def self.get_contact_info(fetion, mobile_no)
-    body = %Q|<args><contact uri="tel:#{mobile_no}" /></args>|
+  def self.get_contact_info(fetion, uri)
+    body = %Q|<args><contact uri="#{uri}" /></args>|
     sipc_create(:command => 'S', :F => fetion.sid, :I => fetion.next_call, :Q => '1 S', :N => 'GetContactInfoV4', :body => body)
   end
 
@@ -66,7 +66,7 @@ class SipcMessage
     body = options.delete(:body)
     with_l = options.delete(:with_l)
 
-    sorted_key = [:F, :I, :Q, :CN, :CL, :A, :AK, :X, :T, :N, :K, :SV]
+    sorted_key = [:F, :I, :Q, :CN, :CL, :A, :AK, :X, :T, :K, :N, :SV]
     sipc = "#{options.delete(:command)} fetion.com.cn SIP-C/4.0\r\n"
     sorted_key.each {|k| sipc += "#{k}: #{options[k]}\r\n" if options[k]}
     sipc += "L: #{body == '' ? 4 : body.size}\r\n" if with_l
@@ -96,6 +96,7 @@ class SipcMessage
 
   class OK < Response; end
   class Send < Response; end
+  class Bad < Response; end
   class Unauthoried < Response; end
   class NotFound < Response; end
   class ExtentionRequired < Response; end
@@ -103,6 +104,7 @@ class SipcMessage
   RESPONSES = {
     200 => SipcMessage::OK,
     280 => SipcMessage::Send,
+    400 => SipcMessage::Bad,
     401 => SipcMessage::Unauthoried,
     404 => SipcMessage::NotFound,
     421 => SipcMessage::ExtentionRequired

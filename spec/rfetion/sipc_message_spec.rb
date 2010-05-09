@@ -57,10 +57,10 @@ describe SipcMessage do
     SipcMessage.send_cat_sms(@fetion, 'sip:730020377@fetion.com.cn;p=6907', 'test').should == sipc_message
   end
 
-  it "should send msg" do
+  it "should send cat msg" do
     @fetion.call = 8
-    sipc_message = %Q|M fetion.com.cn SIP-C/4.0\r\nF: 730020377\r\nI: 9\r\nQ: 3 M\r\nT: sip:638993408@fetion.com.cn;p=2242\r\nK: SaveHistory\r\nL: 4\r\n\r\ntestSIPP|
-    SipcMessage.send_msg(@fetion, 'sip:638993408@fetion.com.cn;p=2242', 'test').should == sipc_message
+    sipc_message = %Q|M fetion.com.cn SIP-C/4.0\r\nF: 730020377\r\nI: 9\r\nQ: 2 M\r\nT: sip:638993408@fetion.com.cn;p=2242\r\nK: SaveHistory\r\nN: CatMsg\r\nL: 4\r\n\r\ntestSIPP|
+    SipcMessage.send_cat_msg(@fetion, 'sip:638993408@fetion.com.cn;p=2242', 'test').should == sipc_message
   end
 
   it "should set schedule sms" do
@@ -72,7 +72,7 @@ describe SipcMessage do
   it "should get contact info" do
     @fetion.call = 10
     sipc_message = %Q|S fetion.com.cn SIP-C/4.0\r\nF: 730020377\r\nI: 11\r\nQ: 1 S\r\nN: GetContactInfoV4\r\nL: 46\r\n\r\n<args><contact uri="tel:15800681507" /></args>SIPP|
-    SipcMessage.get_contact_info(@fetion, 15800681507).should == sipc_message
+    SipcMessage.get_contact_info(@fetion, "tel:15800681507").should == sipc_message
   end
 
   it "should add buddy" do
