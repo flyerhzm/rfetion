@@ -75,7 +75,7 @@ class SipcMessage
   end
 
   def self.sipc_response(http_response_body)
-    sipc, code, message = http_response_body.to_a.first.split(' ')
+    sipc, code, message = http_response_body.split(/(\r)?\n/).first.split(' ')
     RESPONSES[code.to_i].new(code, message)
   rescue NoMethodError
     raise FetionException.new("Fetion error: No response to #{code} #{message}")
