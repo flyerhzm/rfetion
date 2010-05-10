@@ -86,7 +86,7 @@ begin
   
   raise FetionException.new('You must input your mobile number or fetion sid, password and content') unless (options[:mobile_no] or options[:sid]) and options[:password] and options[:content]
   if options[:time]
-    Fetion.schedule_sms(options)
+    Fetion.set_schedule_sms(options)
   else
     Fetion.send_sms(options)
   end
