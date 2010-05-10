@@ -131,6 +131,7 @@ EOF
   describe "get contacts" do
     before :each do
       @fetion.instance_variable_set(:@seq, 5)
+      @fetion.instance_variable_set(:@sid, 730020377)
     end
 
     it "should get all contacts" do
@@ -226,6 +227,112 @@ EOF
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
       @fetion.get_contacts
       @fetion.contacts.collect {|contact| contact.sid}.should == ["793401629", "737769829", "660250260", "926157269", "669700695", "760087520", "480867781", "572512981", "638993408"]
+    end
+
+    it "should get received msg" do
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=6", :body => "SIPP")
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 3
+Q: 1 S
+L: 59
+
+<results><group-list  version ="1" ></group-list></results>SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=7", :body => "SIPP")
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 4
+Q: 1 SUB
+
+M 730020377 SIP-C/4.0
+F: sip:480867781@fetion.com.cn;p=16105
+I: -1
+C: text/plain
+Q: 2 M
+D: Mon, 10 May 2010 14:26:17 GMT
+L: 12
+
+testtesttestBN 730020377 SIP-C/4.0
+N: SystemNotifyV4
+L: 84
+I: 1
+Q: 3 BN
+
+<events><event type="MobileMailBoxChanged"><mail unread-count="1"/></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 322
+Q: 4 BN
+
+<events><event type="PresenceChanged"><contacts><c id="222516658"><p v="0" sid="793401629" su="sip:793401629@fetion.com.cn;p=1919" m="13601804916" c="CMCC" cs="0" s="1" l="0" svc="" n="Peter" i="人生哈哈哈" p="428986348" sms="0.0:0:0" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 329
+Q: 5 BN
+
+<events><event type="PresenceChanged"><contacts><c id="229415466"><p v="0" sid="737769829" su="sip:737769829@fetion.com.cn;p=4078" m="13817731963" c="CMCC" cs="0" s="1" l="8" svc="" n="ice" i="" p="-2000590228" sms="0.0:0:0" sp="0" sh="0"/><pr di="PCCL030516427968" b="400" d="" dt="PC" dc="137"/></c></contacts></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 303
+Q: 6 BN
+
+<events><event type="PresenceChanged"><contacts><c id="228358286"><p v="0" sid="660250260" su="sip:660250260@fetion.com.cn;p=3854" m="13795359343" c="CMCC" cs="0" s="1" l="4" svc="" n="蔡智武" i="" p="0" sms="0.0:0:0" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 643
+Q: 7 BN
+
+<events><event type="PresenceChanged"><contacts><c id="390937727"><p v="0" cs="0" n="flyerhzm" i="http://www.fetionrobot.com" sms="0.0:0:0" sp="0"/></c><c id="665046562"><p v="0" sid="926157269" su="sip:926157269@fetion.com.cn;p=12906" m="" c="CMCC" cs="0" s="1" l="0" svc="" n="黄雅莉" i="" p="0" sms="10099.12:57:24" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c><c id="227091544"><p v="0" sid="669700695" su="sip:669700695@fetion.com.cn;p=3546" m="13764589545" c="CMCC" cs="0" s="1" l="10" svc="" n="郭庆" i="looloo" p="598224859" sms="0.0:0:0" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 338
+Q: 8 BN
+
+<events><event type="PresenceChanged"><contacts><c id="296436724"><p v="0" sid="760087520" su="sip:760087520@fetion.com.cn;p=2467" m="13656681075" c="CMCC" cs="0" s="1" l="5" svc="" n="蒋健" i="TD只需成功，不许失败" p="2074595345" sms="0.0:0:0" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 291
+Q: 9 BN
+
+<events><event type="PresenceChanged"><contacts><c id="732743291"><p v="0" sid="480867781" su="sip:480867781@fetion.com.cn;p=16105" m="" c="" cs="1" s="1" l="0" svc="" n="黄志敏" i="" p="0" sms="365.0:0:0" sp="0" sh="1"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 369
+Q: 10 BN
+
+<events><event type="PresenceChanged"><contacts><c id="226911221"><p v="0" sid="572512981" su="sip:572512981@fetion.com.cn;p=3544" m="13764325001" c="CMCC" cs="0" s="1" l="10" svc="" n="陈勇sh" i="http://slide.news.sina.com.cn/c/slide_1_797_11165.html#p=1" p="-98773891" sms="0.0:0:0" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 300
+Q: 11 BN
+
+<events><event type="PresenceChanged"><contacts><c id="295098062"><p v="0" sid="638993408" su="sip:638993408@fetion.com.cn;p=2242" m="13634102006" c="CMCC" cs="0" s="1" l="0" svc="" n="梦妍" i="" p="0" sms="0.0:0:0" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=8", :body => response_body)
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 5
+Q: 1 S
+L: 835
+
+<results><topic-list event="RecommendGroupTopic" version="171" max-count="5"><topic title="陌上人如玉 韩庚世无双" url="http://group.fetion.com.cn/topic/common/31333572/196313?c=[c:m161.com.cn]" create-date="2010-5-6 15:36:30" id="171" topic-type="1"  /><topic title="世博园10大最美景观" url="http://group.fetion.com.cn/topic/common/8249155/196251?c=[c:m161.com.cn]" create-date="2010-5-6 15:33:49" id="170" topic-type="1"  /><topic title="诺基亚价值百万的手机" url="http://group.fetion.com.cn/topic/common/7366464/196288?c=[c:m161.com.cn]" create-date="2010-5-6 15:31:57" id="169" topic-type="1"  /><topic title="选秀调查：伪娘的真相" url="http://group.fetion.com.cn/topic/common/30660603/196323?c=[c:m161.com.cn]" create-date="2010-5-6 15:22:51" id="168" topic-type="1"  /></topic-list></results>SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=9", :body => response_body)
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 6
+Q: 1 S
+L: 61
+
+<results><contacts version="326661305" ></contacts></results>SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
+      @fetion.get_contacts
+      @fetion.contacts.collect {|c| c.sid}.should == ["793401629", "737769829", "660250260", "926157269", "669700695", "760087520", "480867781", "572512981", "638993408"]
+      @fetion.receives.collect {|r| r.sip}.should == ["480867781@fetion.com.cn;p=16105"]
+      @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Mon, 10 May 2010 14:26:17 GMT")]
+      @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]
     end
   end
 

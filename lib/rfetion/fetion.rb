@@ -9,7 +9,7 @@ require 'logger'
 
 class Fetion
   attr_accessor :mobile_no, :sid, :password
-  attr_reader :user_id, :uri, :contacts, :response, :nickname
+  attr_reader :user_id, :uri, :contacts, :response, :nickname, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
@@ -23,6 +23,7 @@ class Fetion
     @call = @alive = @seq = 0
     @buddies = []
     @contacts = []
+    @receives = []
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
     @guid = Guid.new.to_s
@@ -202,9 +203,10 @@ class Fetion
 
     response = curl_exec(SipcMessage.presence(self))
     response = curl_exec(SipcMessage.get_group_topic(self))
-    parse_contacts(response)
+    parse_contacts_and_receives(response)
 
-    curl_exec(SipcMessage.get_address_list(self))
+    response = curl_exec(SipcMessage.get_address_list(self))
+    parse_contacts_and_receives(response)
     pulse
 
     @logger.info "fetion get contacts success"
@@ -360,15 +362,28 @@ class Fetion
     @logger.debug "buddies: #{@buddies.inspect}"
   end
 
-  def parse_contacts(response)
+  def parse_contacts_and_receives(response)
     raise FetionException.new('Fetion Error: get contacts error.') unless Net::HTTPSuccess === response
     sipc_response = SipcMessage.sipc_response(response.body)
     raise Fetion::GetContactsException.new("Fetion Error: get contacts failed with #{sipc_response}.") unless Net::HTTPSuccess === response and SipcMessage::OK === sipc_response
 
+    response.body.scan(%r{M #{@sid} SIP-C/4.0.*?BN}m).each do |message_response|
+      message_header, message_content = message_response.split(/(\r)?\n(\r)?\n/)
+      sip = sent_at = length = nil
+      message_header.split(/(\r)?\n/).each do |line|
+        case line
+        when /^F: sip:(.+)/ then sip = $1
+        when /^D: (.+)/ then sent_at = Time.parse($1)
+        when /^L: (\d+)/ then length = $1.to_i
+        end
+      end
+      text = message_content.slice(0, length)
+      @receives << Fetion::Message.new(sip, sent_at, text)
+    end
     response.body.scan(%r{<events>.*?</events>}).each do |results|
       doc = Nokogiri::XML(results)
       doc.root.xpath("/events//c/p").each do |person|
-        @contacts << Contact.new(person) if person['sid']
+        @contacts << Fetion::Contact.new(person) if person['sid']
       end
     end
 
