@@ -290,6 +290,15 @@ class Fetion
     @logger.info "fetion get contact info of #{uri} success"
   end
 
+  def keep_alive
+    @logger.info "fetion keep alive"
+    
+    response = pulse
+    parse_response(response)
+
+    @logger.info "fetion keep alive success"
+  end
+
   def logout
     @logger.info "fetion logout"
 
@@ -298,6 +307,17 @@ class Fetion
 
     # raise FetionException.new("Fetion Error: Logout error") unless response.is_a? Net::HTTPSuccess
     @logger.info "fetion logout success"
+  end
+
+  def parse_response(response)
+    raise FetionException.new("Fetion Error: keep alive error") unless Net::HTTPSuccess === response
+    response.body.scan(%r{<events>.*?</events>}).each do |results|
+      doc = Nokogiri::XML(results)
+      doc.root.xpath("/events//c").each do |c|
+        contact = contacts.find {|contact| contact.id == c['id']}
+        contact.status = c.children.first['b']
+      end
+    end
   end
 
   def parse_ssic(response)
@@ -382,8 +402,8 @@ class Fetion
     end
     response.body.scan(%r{<events>.*?</events>}).each do |results|
       doc = Nokogiri::XML(results)
-      doc.root.xpath("/events//c/p").each do |person|
-        @contacts << Fetion::Contact.new(person) if person['sid']
+      doc.root.xpath("/events//c").each do |c|
+        @contacts << Fetion::Contact.parse(c) unless c['id'] == @user_id 
       end
     end
 

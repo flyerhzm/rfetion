@@ -131,7 +131,8 @@ EOF
   describe "get contacts" do
     before :each do
       @fetion.instance_variable_set(:@seq, 5)
-      @fetion.instance_variable_set(:@sid, 730020377)
+      @fetion.instance_variable_set(:@sid, "730020377")
+      @fetion.instance_variable_set(:@user_id, "390937727")
     end
 
     it "should get all contacts" do
@@ -470,8 +471,32 @@ EOF
     end
 
     it "should logout" do
-      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => '')
-      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=14", :body => '')
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => "SIPP")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=14", :body => "SIPP")
+    end
+  end
+
+  describe "keep-alive" do
+    before :each do
+      @fetion.instance_variable_set(:@seq, 10)
+      contact = Fetion::Contact.new
+      contact.id = '295098062'
+      @fetion.instance_variable_set(:@contacts, [contact])
+    end
+
+    it "should get presence with online" do
+      response_body =<<-EOF
+BN 730020377 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 154
+Q: 11 BN
+
+<events><event type="PresenceChanged"><contacts><c id="295098062"><pr di="PCCL030340538483" b="400" d="" dt="PC" dc="17"/></c></contacts></event></events>SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      @fetion.keep_alive
+      @fetion.contacts.find {|contact| contact.id == '295098062'}.status.should == "400"
     end
   end
 end
