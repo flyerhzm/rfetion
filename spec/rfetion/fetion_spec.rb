@@ -479,6 +479,7 @@ EOF
   describe "keep-alive" do
     before :each do
       @fetion.instance_variable_set(:@seq, 10)
+      @fetion.instance_variable_set(:@sid, "730020377")
       contact = Fetion::Contact.new
       contact.id = '295098062'
       @fetion.instance_variable_set(:@contacts, [contact])
@@ -497,6 +498,27 @@ EOF
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
       @fetion.keep_alive
       @fetion.contacts.find {|contact| contact.id == '295098062'}.status.should == "400"
+    end
+
+    it "should get receive msg" do
+      response_body =<<-EOF
+M 730020377 SIP-C/4.0
+I: -17
+Q: 4 M
+F: sip:638993408@fetion.com.cn;p=2242
+C: text/html-fragment
+K: SaveHistory
+L: 12
+D: Tue, 11 May 2010 15:18:56 GMT
+XI: 7eb8bc4e9df742b2aa557f9e85c8d8af
+
+testtesttestSIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      @fetion.keep_alive
+      @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
+      @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Tue, 11 May 2010 15:18:56 GMT")]
+      @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]
     end
   end
 end

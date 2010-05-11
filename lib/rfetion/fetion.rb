@@ -311,6 +311,20 @@ class Fetion
 
   def parse_response(response)
     raise FetionException.new("Fetion Error: keep alive error") unless Net::HTTPSuccess === response
+
+    response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP}m).each do |message_response|
+      message_header, message_content = message_response.split(/(\r)?\n(\r)?\n/)
+      sip = sent_at = length = nil
+      message_header.split(/(\r)?\n/).each do |line|
+        case line
+        when /^F: sip:(.+)/ then sip = $1
+        when /^D: (.+)/ then sent_at = Time.parse($1)
+        when /^L: (\d+)/ then length = $1.to_i
+        end
+      end
+      text = message_content.slice(0, length)
+      @receives << Fetion::Message.new(sip, sent_at, text)
+    end
     response.body.scan(%r{<events>.*?</events>}).each do |results|
       doc = Nokogiri::XML(results)
       doc.root.xpath("/events//c").each do |c|
