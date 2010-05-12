@@ -4,5 +4,6 @@ specdoc
 --reverse
 --timeout
 20
+--backtrace
 --loadby
 mtime

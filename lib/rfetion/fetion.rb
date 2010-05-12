@@ -179,7 +179,7 @@ class Fetion
 
     curl_exec(SIPP, next_url('i'))
     curl_exec(SipcMessage.register_first(self))
-    response = pulse
+    response = pulse(SipcMessage::Unauthoried)
     parse_nonce(response)
 
     @logger.debug "fetion register first success"
@@ -218,7 +218,6 @@ class Fetion
     curl_exec(SipcMessage.send_cat_msg(self, receiver, content))
     response = pulse
 
-    raise FetionException.new("Fetion Error: Send cat msg error") unless Net::HTTPSuccess === response
     sipc_message = SipcMessage.sipc_response(response.body)
     raise Fetion::SendMsgException.new("Fetion Error: Send cat msg error with #{sipc_message}") unless SipcMessage::OK === sipc_message
 
@@ -229,9 +228,8 @@ class Fetion
     @logger.info "fetion send cat sms to #{receiver}"
 
     curl_exec(SipcMessage.send_cat_sms(self, receiver, content))
-    response = pulse
+    response = pulse(SipcMessage::Send)
 
-    raise FetionException.new("Fetion Error: Send cat sms error") unless Net::HTTPSuccess === response
     sipc_message = SipcMessage.sipc_response(response.body)
     raise Fetion::SendSmsException.new("Fetion Error: Send cat sms error with #{sipc_message}") unless SipcMessage::Send === sipc_message
 
@@ -250,7 +248,6 @@ class Fetion
     curl_exec(SipcMessage.set_schedule_sms(self, receivers, content, time.strftime('%Y-%m-%d %H:%M:%S')))
     response = pulse
 
-    raise FetionException.new("Fetion Error: Set schedule sms error") unless Net::HTTPSuccess === response
     sipc_message = SipcMessage.sipc_response(response.body)
     raise Fetion::SetScheduleSmsException.new("Fetion Error: Set schedule sms error with #{sipc_message}") unless SipcMessage::OK === sipc_message
 
@@ -266,7 +263,6 @@ class Fetion
     @logger.info "fetion send request to add #{uri} as friend"
     curl_exec(SipcMessage.add_buddy(self, options))
     response = pulse
-    raise FetionException.new("Fetion Error: Add buddy error") unless Net::HTTPSuccess === response
     sipc_message = SipcMessage.sipc_response(response.body)
     raise Fetion::AddBuddyException.new("Fetion Error: Add buddy error with #{sipc_message}") unless SipcMessage::OK === sipc_message
 
@@ -283,7 +279,6 @@ class Fetion
     curl_exec(SipcMessage.get_contact_info(self, uri))
     response = pulse
 
-    raise FetionException.new("Fetion Error: get contact info error") unless Net::HTTPSuccess === response
     sipc_response = SipcMessage.sipc_response(response.body)
     raise Fetion::NoUserException.new("Fetion Error: get contact info #{uri} with #{sipc_response}") unless SipcMessage::OK === sipc_response
 
@@ -305,13 +300,10 @@ class Fetion
     curl_exec(SipcMessage.logout(self))
     response = pulse
 
-    # raise FetionException.new("Fetion Error: Logout error") unless response.is_a? Net::HTTPSuccess
     @logger.info "fetion logout success"
   end
 
   def parse_response(response)
-    raise FetionException.new("Fetion Error: keep alive error") unless Net::HTTPSuccess === response
-
     response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP}m).each do |message_response|
       message_header, message_content = message_response.split(/(\r)?\n(\r)?\n/)
       sip = sent_at = length = nil
@@ -362,7 +354,6 @@ class Fetion
   end
   
   def parse_nonce(response)
-    raise FetionException.new("Fetion Error: Register first error.") unless Net::HTTPSuccess === response
     sipc_response = SipcMessage.sipc_response(response.body)
     raise Fetion::RegisterException.new("Fetion Error: Register first should get unauthorized response with #{sipc_response}.") unless SipcMessage::Unauthoried === sipc_response
     raise Fetion::NoNonceException.new("Fetion Error: No nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
@@ -379,7 +370,6 @@ class Fetion
   end
 
   def parse_info(response)
-    raise Fetion::FetionException.new("Fetion Error: Register second error.") unless Net::HTTPSuccess === response
     sipc_response = SipcMessage.sipc_response(response.body)
     raise Fetion::RegisterException.new("Fetion Error: Register second error with #{sipc_response}.") unless SipcMessage::OK === sipc_response
 
@@ -397,7 +387,6 @@ class Fetion
   end
 
   def parse_contacts_and_receives(response)
-    raise FetionException.new('Fetion Error: get contacts error.') unless Net::HTTPSuccess === response
     sipc_response = SipcMessage.sipc_response(response.body)
     raise Fetion::GetContactsException.new("Fetion Error: get contacts failed with #{sipc_response}.") unless Net::HTTPSuccess === response and SipcMessage::OK === sipc_response
 
@@ -424,18 +413,22 @@ class Fetion
     @logger.debug "contacts: #{@contacts.inspect}"
   end
 
-  def pulse
-    curl_exec(SIPP)
+  def pulse(expected=SipcMessage::OK)
+    curl_exec(SIPP, next_url, expected)
   end
 
-  def curl_exec(body='', url=next_url)
+  def curl_exec(body='', url=next_url, expected=SipcMessage::OK)
     @logger.debug "fetion curl exec"
     @logger.debug "url: #{url}"
     @logger.debug "body: #{body}"
+    
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
     headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => USER_AGENT, 'Cookie' => "ssic=#{@ssic}", 'Content-Length' => body.length.to_s}
     response = http.request_post(uri.request_uri, body, headers)
+    raise FetionException.new("request_url: #{url}, request_body: #{body}, response: #{response.code}, response_body: #{response.body}") unless Net::HTTPSuccess === response
+    sipc_response = SipcMessage.sipc_response(response.body)
+    raise Fetion::SipcException.new(sipc_response, "request_url: #{url}, request_body: #{body}, sipc_response: #{sipc_response}") if sipc_response and not expected === sipc_response
 
     @logger.debug "response: #{response.inspect}"
     @logger.debug "response body: #{response.body}"
@@ -487,3 +480,12 @@ class Fetion::SetScheduleSmsException < FetionException; end
 class Fetion::AddBuddyException < FetionException; end
 class Fetion::GetContactsException < FetionException; end
 class Fetion::NoUserException < FetionException; end
+class Fetion::SipcException < FetionException
+  attr_reader :code, :description, :message
+  
+  def initialize(sipc_response, message)
+    @code = sipc_response.code
+    @description = sipc_response.description
+    @message = message
+  end
+end

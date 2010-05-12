@@ -58,39 +58,26 @@ class SipcMessage
     sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '3 R', :X => 0, :with_l => false)
   end
 
-  # command       one of 'R', 'S'
-  # with_l        display L or not
-  # body          sipc body
-  def self.sipc_create(options)
-    options = {:body => '', :with_l => true}.merge(options)
-    body = options.delete(:body)
-    with_l = options.delete(:with_l)
-
-    sorted_key = [:F, :I, :Q, :CN, :CL, :A, :AK, :X, :T, :K, :N, :SV]
-    sipc = "#{options.delete(:command)} fetion.com.cn SIP-C/4.0\r\n"
-    sorted_key.each {|k| sipc += "#{k}: #{options[k]}\r\n" if options[k]}
-    sipc += "L: #{body == '' ? 4 : body.size}\r\n" if with_l
-    sipc += "\r\n#{body}#{Fetion::SIPP}"
-    sipc
-  end
-
   def self.sipc_response(http_response_body)
-    sipc, code, message = http_response_body.split(/(\r)?\n/).first.split(' ')
-    RESPONSES[code.to_i].new(code, message)
+    return if http_response_body == Fetion::SIPP
+    # TODO: BN 730020377 SIP-C/4.0, M 730020377 SIP-C/4.0
+    return unless http_response_body =~ %r{^SIP-C/4.0}
+    sipc, code, *message = http_response_body.split(/(\r)?\n/).first.split(' ')
+    RESPONSES[code.to_i].new(code.to_i, message.join(' '))
   rescue NoMethodError
-    raise FetionException.new("Fetion error: No response to #{code} #{message}")
+    raise FetionException.new("Fetion error: No response to #{code} #{message.join(' ')}")
   end
 
   class Response
-    attr_reader :code, :message
+    attr_reader :code, :description
 
-    def initialize(code, message)
+    def initialize(code, description)
       @code = code
-      @message = message
+      @description = description
     end
 
     def to_s
-      "#@code #@message"
+      "#@code #@description"
     end
   end
 
@@ -109,4 +96,21 @@ class SipcMessage
     404 => SipcMessage::NotFound,
     421 => SipcMessage::ExtentionRequired
   }
+
+  private
+    # command       one of 'R', 'S'
+    # with_l        display L or not
+    # body          sipc body
+    def self.sipc_create(options)
+      options = {:body => '', :with_l => true}.merge(options)
+      body = options.delete(:body)
+      with_l = options.delete(:with_l)
+
+      sorted_key = [:F, :I, :Q, :CN, :CL, :A, :AK, :X, :T, :K, :N, :SV]
+      sipc = "#{options.delete(:command)} fetion.com.cn SIP-C/4.0\r\n"
+      sorted_key.each {|k| sipc += "#{k}: #{options[k]}\r\n" if options[k]}
+      sipc += "L: #{body == '' ? 4 : body.size}\r\n" if with_l
+      sipc += "\r\n#{body}#{Fetion::SIPP}"
+      sipc
+    end
 end

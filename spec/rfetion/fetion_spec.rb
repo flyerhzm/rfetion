@@ -461,7 +461,7 @@ Q: 1 S
 SIPP
 EOF
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
-      lambda {@fetion.get_contact_info(:friend_mobile => '15800681505')}.should raise_exception(Fetion::NoUserException)
+      lambda {@fetion.get_contact_info(:friend_mobile => '15800681505')}.should raise_exception(Fetion::SipcException)
     end
   end
 
