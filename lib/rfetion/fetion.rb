@@ -179,8 +179,7 @@ class Fetion
 
     curl_exec(SIPP, next_url('i'))
     curl_exec(SipcMessage.register_first(self))
-    response = pulse(SipcMessage::Unauthoried)
-    parse_nonce(response)
+    pulse(SipcMessage::Unauthoried)
 
     @logger.debug "fetion register first success"
   end
@@ -353,22 +352,6 @@ class Fetion
     @logger.debug "sid: " + @sid
   end
   
-  def parse_nonce(response)
-    sipc_response = SipcMessage.sipc_response(response.body)
-    raise Fetion::RegisterException.new("Fetion Error: Register first should get unauthorized response with #{sipc_response}.") unless SipcMessage::Unauthoried === sipc_response
-    raise Fetion::NoNonceException.new("Fetion Error: No nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
-      
-    @nonce = $1
-    @key = $2
-    @signature = $3
-    @response = calc_response
-
-    @logger.debug "nonce: #{@nonce}"
-    @logger.debug "key: #{@key}"
-    @logger.debug "signature: #{@signature}"
-    @logger.debug "response: #{@response}"
-  end
-
   def parse_info(response)
     sipc_response = SipcMessage.sipc_response(response.body)
     raise Fetion::RegisterException.new("Fetion Error: Register second error with #{sipc_response}.") unless SipcMessage::OK === sipc_response
@@ -428,7 +411,24 @@ class Fetion
     response = http.request_post(uri.request_uri, body, headers)
     raise FetionException.new("request_url: #{url}, request_body: #{body}, response: #{response.code}, response_body: #{response.body}") unless Net::HTTPSuccess === response
     sipc_response = SipcMessage.sipc_response(response.body)
-    raise Fetion::SipcException.new(sipc_response, "request_url: #{url}, request_body: #{body}, sipc_response: #{sipc_response}") if sipc_response and not expected === sipc_response
+    
+    if sipc_response
+      raise Fetion::SipcException.new(sipc_response, "request_url: #{url}, request_body: #{body}, sipc_response: #{sipc_response}") unless expected === sipc_response
+    
+      if sipc_response.code == 401
+        # unauthorized, get nonce, key and signature
+        raise Fetion::NoNonceException.new("Fetion Error: No nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
+        @nonce = $1
+        @key = $2
+        @signature = $3
+        @response = calc_response
+
+        @logger.debug "nonce: #{@nonce}"
+        @logger.debug "key: #{@key}"
+        @logger.debug "signature: #{@signature}"
+        @logger.debug "response: #{@response}"
+      end
+    end
 
     @logger.debug "response: #{response.inspect}"
     @logger.debug "response body: #{response.body}"
