@@ -124,6 +124,7 @@ EOF
         @fetion.register_second
 
         @fetion.nickname.should == "flyerhzm"
+        @fetion.buddy_lists.collect {|buddy_list| buddy_list.name}.should == ['我的好友', '好友', '同学']
       end
     end
   end

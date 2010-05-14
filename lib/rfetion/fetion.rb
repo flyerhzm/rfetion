@@ -9,7 +9,7 @@ require 'logger'
 
 class Fetion
   attr_accessor :mobile_no, :sid, :password
-  attr_reader :user_id, :uri, :contacts, :response, :nickname, :receives
+  attr_reader :user_id, :uri, :contacts, :buddy_lists, :response, :nickname, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
@@ -21,6 +21,7 @@ class Fetion
 
   def initialize
     @call = @alive = @seq = 0
+    @buddy_lists = []
     @buddies = []
     @contacts = []
     @receives = []
@@ -189,8 +190,7 @@ class Fetion
 
     body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
     curl_exec(SipcMessage.register_second(self))
-    response = pulse
-    parse_info(response)
+    pulse
 
     @logger.debug "fetion register second success"
   end
@@ -199,13 +199,9 @@ class Fetion
     @logger.info "fetion get contacts"
 
     curl_exec(SipcMessage.get_group_list(self))
-
-    response = curl_exec(SipcMessage.presence(self))
-    response = curl_exec(SipcMessage.get_group_topic(self))
-    parse_contacts_and_receives(response)
-
-    response = curl_exec(SipcMessage.get_address_list(self))
-    parse_contacts_and_receives(response)
+    curl_exec(SipcMessage.presence(self))
+    curl_exec(SipcMessage.get_group_topic(self))
+    curl_exec(SipcMessage.get_address_list(self))
     pulse
 
     @logger.info "fetion get contacts success"
@@ -215,10 +211,7 @@ class Fetion
     @logger.info "fetion send cat msg to #{receiver}"
 
     curl_exec(SipcMessage.send_cat_msg(self, receiver, content))
-    response = pulse
-
-    sipc_message = SipcMessage.sipc_response(response.body)
-    raise Fetion::SendMsgException.new("Fetion Error: Send cat msg error with #{sipc_message}") unless SipcMessage::OK === sipc_message
+    pulse
 
     @logger.info "fetion send cat msg to #{receiver} success"
   end
@@ -227,10 +220,7 @@ class Fetion
     @logger.info "fetion send cat sms to #{receiver}"
 
     curl_exec(SipcMessage.send_cat_sms(self, receiver, content))
-    response = pulse(SipcMessage::Send)
-
-    sipc_message = SipcMessage.sipc_response(response.body)
-    raise Fetion::SendSmsException.new("Fetion Error: Send cat sms error with #{sipc_message}") unless SipcMessage::Send === sipc_message
+    pulse(SipcMessage::Send)
 
     @logger.info "fetion send cat sms to #{receiver} success"
   end
@@ -245,10 +235,7 @@ class Fetion
     @logger.info "fetion schedule send sms to #{receivers.join(', ')}"
     
     curl_exec(SipcMessage.set_schedule_sms(self, receivers, content, time.strftime('%Y-%m-%d %H:%M:%S')))
-    response = pulse
-
-    sipc_message = SipcMessage.sipc_response(response.body)
-    raise Fetion::SetScheduleSmsException.new("Fetion Error: Set schedule sms error with #{sipc_message}") unless SipcMessage::OK === sipc_message
+    pulse
 
     @logger.info "fetion schedule send sms to #{receivers.join(', ')} success"
   end
@@ -258,12 +245,10 @@ class Fetion
   #   friend_sip
   def add_buddy(options)
     uri = options[:friend_mobile] ? "tel:#{options[:friend_mobile]}" : "sip:#{options[:friend_sip]}"
-
     @logger.info "fetion send request to add #{uri} as friend"
+    
     curl_exec(SipcMessage.add_buddy(self, options))
-    response = pulse
-    sipc_message = SipcMessage.sipc_response(response.body)
-    raise Fetion::AddBuddyException.new("Fetion Error: Add buddy error with #{sipc_message}") unless SipcMessage::OK === sipc_message
+    pulse
 
     @logger.info "fetion send request to add #{uri} as friend success"
   end
@@ -273,13 +258,10 @@ class Fetion
   #   sip
   def get_contact_info(options)
     uri = options[:mobile_no] ? "tel:#{options[:mobile_no]}" : "sip:#{options[:sip]}"
-
     @logger.info "fetion get contact info of #{uri}"
+    
     curl_exec(SipcMessage.get_contact_info(self, uri))
-    response = pulse
-
-    sipc_response = SipcMessage.sipc_response(response.body)
-    raise Fetion::NoUserException.new("Fetion Error: get contact info #{uri} with #{sipc_response}") unless SipcMessage::OK === sipc_response
+    pulse
 
     @logger.info "fetion get contact info of #{uri} success"
   end
@@ -287,8 +269,7 @@ class Fetion
   def keep_alive
     @logger.info "fetion keep alive"
     
-    response = pulse
-    parse_response(response)
+    pulse
 
     @logger.info "fetion keep alive success"
   end
@@ -297,32 +278,9 @@ class Fetion
     @logger.info "fetion logout"
 
     curl_exec(SipcMessage.logout(self))
-    response = pulse
+    pulse
 
     @logger.info "fetion logout success"
-  end
-
-  def parse_response(response)
-    response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP}m).each do |message_response|
-      message_header, message_content = message_response.split(/(\r)?\n(\r)?\n/)
-      sip = sent_at = length = nil
-      message_header.split(/(\r)?\n/).each do |line|
-        case line
-        when /^F: sip:(.+)/ then sip = $1
-        when /^D: (.+)/ then sent_at = Time.parse($1)
-        when /^L: (\d+)/ then length = $1.to_i
-        end
-      end
-      text = message_content.slice(0, length)
-      @receives << Fetion::Message.new(sip, sent_at, text)
-    end
-    response.body.scan(%r{<events>.*?</events>}).each do |results|
-      doc = Nokogiri::XML(results)
-      doc.root.xpath("/events//c").each do |c|
-        contact = contacts.find {|contact| contact.id == c['id']}
-        contact.status = c.children.first['b']
-      end
-    end
   end
 
   def parse_ssic(response)
@@ -351,50 +309,6 @@ class Fetion
     @logger.debug "user_id: " + @user_id
     @logger.debug "sid: " + @sid
   end
-  
-  def parse_info(response)
-    sipc_response = SipcMessage.sipc_response(response.body)
-    raise Fetion::RegisterException.new("Fetion Error: Register second error with #{sipc_response}.") unless SipcMessage::OK === sipc_response
-
-    response.body.scan(%r{<results>.*?</results>}).each do |results|
-      doc = Nokogiri::XML(results)
-      personal = doc.root.xpath("/results/user-info/personal").first
-      @nickname = personal['nickname']
-      doc.root.xpath("/results//buddies/b").each do |buddy|
-        @buddies << {:uri => buddy["u"]}
-      end
-    end
-
-    @logger.debug "nickname: #@nickname"
-    @logger.debug "buddies: #{@buddies.inspect}"
-  end
-
-  def parse_contacts_and_receives(response)
-    sipc_response = SipcMessage.sipc_response(response.body)
-    raise Fetion::GetContactsException.new("Fetion Error: get contacts failed with #{sipc_response}.") unless Net::HTTPSuccess === response and SipcMessage::OK === sipc_response
-
-    response.body.scan(%r{M #{@sid} SIP-C/4.0.*?BN}m).each do |message_response|
-      message_header, message_content = message_response.split(/(\r)?\n(\r)?\n/)
-      sip = sent_at = length = nil
-      message_header.split(/(\r)?\n/).each do |line|
-        case line
-        when /^F: sip:(.+)/ then sip = $1
-        when /^D: (.+)/ then sent_at = Time.parse($1)
-        when /^L: (\d+)/ then length = $1.to_i
-        end
-      end
-      text = message_content.slice(0, length)
-      @receives << Fetion::Message.new(sip, sent_at, text)
-    end
-    response.body.scan(%r{<events>.*?</events>}).each do |results|
-      doc = Nokogiri::XML(results)
-      doc.root.xpath("/events//c").each do |c|
-        @contacts << Fetion::Contact.parse(c) unless c['id'] == @user_id 
-      end
-    end
-
-    @logger.debug "contacts: #{@contacts.inspect}"
-  end
 
   def pulse(expected=SipcMessage::OK)
     curl_exec(SIPP, next_url, expected)
@@ -409,8 +323,13 @@ class Fetion
     http = Net::HTTP.new(uri.host, uri.port)
     headers = {'Content-Type' => 'application/oct-stream', 'Pragma' => "xz4BBcV#{@guid}", 'User-Agent' => USER_AGENT, 'Cookie' => "ssic=#{@ssic}", 'Content-Length' => body.length.to_s}
     response = http.request_post(uri.request_uri, body, headers)
+
+    @logger.debug "response: #{response.inspect}"
+    @logger.debug "response body: #{response.body}"
+    @logger.debug "fetion curl exec complete"
+    
     raise FetionException.new("request_url: #{url}, request_body: #{body}, response: #{response.code}, response_body: #{response.body}") unless Net::HTTPSuccess === response
-    sipc_response = SipcMessage.sipc_response(response.body)
+    sipc_response = SipcMessage.sipc_response(response.body, self)
     
     if sipc_response
       raise Fetion::SipcException.new(sipc_response, "request_url: #{url}, request_body: #{body}, sipc_response: #{sipc_response}") unless expected === sipc_response
@@ -427,12 +346,52 @@ class Fetion
         @logger.debug "key: #{@key}"
         @logger.debug "signature: #{@signature}"
         @logger.debug "response: #{@response}"
+      else
+        response.body.scan(%r{<results>.*?</results>}).each do |results|
+          doc = Nokogiri::XML(results)
+          doc.root.xpath("/results/user-info/personal").each do |personal_element|
+            @nickname = personal_element['nickname']
+            @logger.debug "nickname: #@nickname"
+          end
+          doc.root.xpath("/results/user-info/contact-list/buddy-lists/buddy-list").each do |buddy_list|
+            @buddy_lists << Fetion::BuddyList.parse(buddy_list)
+            @logger.debug "buddy_lists: #{@buddy_lists.inspect}"
+          end
+          doc.root.xpath("/results/user-info/contact-list/buddies/b").each do |buddy|
+            @buddies << {:uri => buddy["u"]}
+            @logger.debug "buddies: #{@buddies.inspect}"
+          end
+        end
+        
+        response.body.scan(%r{<events>.*?</events>}).each do |events|
+          doc = Nokogiri::XML(events)
+          doc.root.xpath("/events/event[@type='PresenceChanged']/contacts/c").each do |c|
+            contact = contacts.find {|contact| contact.id == c['id']}
+            if contact
+              contact.status = c.children.first['b']
+            else
+              @contacts << Fetion::Contact.parse(c) unless c['id'] == @user_id
+            end
+          end
+        end
+        
+        receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?BN}m)
+        receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP$}m) if receive_messages.empty?
+        receive_messages.each do |message_response|
+          message_header, message_content = message_response.split(/(\r)?\n(\r)?\n/)
+          sip = sent_at = length = nil
+          message_header.split(/(\r)?\n/).each do |line|
+            case line
+            when /^F: sip:(.+)/ then sip = $1
+            when /^D: (.+)/ then sent_at = Time.parse($1)
+            when /^L: (\d+)/ then length = $1.to_i
+            end
+          end
+          text = message_content.slice(0, length)
+          @receives << Fetion::Message.new(sip, sent_at, text)
+        end
       end
     end
-
-    @logger.debug "response: #{response.inspect}"
-    @logger.debug "response body: #{response.body}"
-    @logger.debug "fetion curl exec complete"
     response
   end
 

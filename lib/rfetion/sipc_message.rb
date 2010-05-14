@@ -58,12 +58,15 @@ class SipcMessage
     sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '3 R', :X => 0, :with_l => false)
   end
 
-  def self.sipc_response(http_response_body)
+  def self.sipc_response(http_response_body, fetion)
     return if http_response_body == Fetion::SIPP
-    # TODO: BN 730020377 SIP-C/4.0, M 730020377 SIP-C/4.0
-    return unless http_response_body =~ %r{^SIP-C/4.0}
-    sipc, code, *message = http_response_body.split(/(\r)?\n/).first.split(' ')
-    RESPONSES[code.to_i].new(code.to_i, message.join(' '))
+    
+    if http_response_body =~ %r{^SIP-C/4.0}
+      sipc, code, *message = http_response_body.split(/(\r)?\n/).first.split(' ')
+      RESPONSES[code.to_i].new(code.to_i, message.join(' '))
+    elsif http_response_body =~ %r{(BN|M) #{fetion.sid} SIP-C/4.0}
+      SipcMessage::OK.new(200, $1)
+    end
   rescue NoMethodError
     raise FetionException.new("Fetion error: No response to #{code} #{message.join(' ')}")
   end
