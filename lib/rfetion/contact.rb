@@ -1,3 +1,4 @@
+#coding: utf-8
 class Fetion
   class Contact
     attr_accessor :id, :sid, :uri, :mobile_no, :nickname, :impresa, :nickname, :status
