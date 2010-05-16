@@ -227,7 +227,7 @@ L: 21
 s=session
 m=message SIPP
 EOF
-    http_response_body.gsub!("\n", "\r\n")
+    http_response_body.gsub!("\n", "\r\n").chomp!
     last_sipc_response = SipcMessage.sipc_response(http_response_body, @fetion)
     sipc_message = %Q|SIP-C/4.0 200 OK\r\nI: -13\r\nQ: 14 I\r\nF: sip:638993408@fetion.com.cn;p=2242\r\nK: text/plain\r\nK: text/html-fragment\r\nK: multiparty\r\nK: nudge\r\nL: 129\r\n\r\nv=0\r\no=-0 0 IN 127.0.0.1:8001\r\ns=session\r\nc=IN IP4 127.0.0.1:8001\r\nt=0 0\r\nm=message 8001 sip sip:730020377@fetion.com.cn;p=6907\r\nSIPP|
     SipcMessage.create_session(@fetion, last_sipc_response).should == sipc_message
@@ -251,9 +251,19 @@ Q: 14 A
 
 SIPP
 EOF
-    http_response_body.gsub!("\n", "\r\n")
+    http_response_body.gsub!("\n", "\r\n").chomp!
     last_sipc_response = SipcMessage.sipc_response(http_response_body, @fetion)
-    sipc_message = %Q|SIP-C/4.0 200 OK\r\nF: sip:638993408@fetion.com.cn;p=2242\r\nI: -13\r\nQ: 2 O\r\nK: text/html-fragment\r\nK: text/plain\r\n\r\nSIPP|
+    sipc_message =<<-EOF
+SIP-C/4.0 200 OK
+F: sip:638993408@fetion.com.cn;p=2242
+I: -13
+Q: 2 O
+K: text/html-fragment
+K: text/plain
+
+SIPP
+EOF
+    sipc_message.gsub!("\n", "\r\n").chomp!
     SipcMessage.session_connected(@fetion, last_sipc_response).should == sipc_message
   end
 
@@ -271,10 +281,17 @@ XI: 0dbdc4e81bff425dbcf8b591b497fe94
 
 testSIPP
 EOF
-    http_response_body.gsub!("\n", "\r\n")
-    last_sipc_response = SipcMessage.sipc_response(http_response_body, @fetion)
-    sipc_message = %Q|SIP-C/4.0 200 OK\r\nF: sip:638993408@fetion.com.cn;p=2242\r\nI: -13\r\nQ: 4 M\r\n\r\nSIPP|
-    SipcMessage.msg_received(@fetion, last_sipc_response).should == sipc_message
+    http_response_body.gsub!("\n", "\r\n").chomp!
+    sipc_message =<<-EOF
+SIP-C/4.0 200 OK
+F: sip:638993408@fetion.com.cn;p=2242
+I: -13
+Q: 4 M
+
+SIPP
+EOF
+    sipc_message.gsub!("\n", "\r\n").chomp!
+    SipcMessage.msg_received(@fetion, http_response_body).should == sipc_message
   end
 
   it "should close session" do

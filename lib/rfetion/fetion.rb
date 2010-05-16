@@ -54,6 +54,7 @@ class Fetion
       keep_alive
       sleep(15)
       keep_alive
+      p receives
     end
   end
 
@@ -278,13 +279,7 @@ class Fetion
   def keep_alive
     @logger.info "fetion keep alive"
     
-    sipc_response = pulse
-    if sipc_response.header and sipc_response.body =~ /^s=session\r\nm=message/m
-      sipc_response = curl_exec(SipcMessage.create_session(self, sipc_response))
-      sipc_response = pulse
-      sipc_response = curl_exec(SipcMessage.session_connected(self, sipc_response))
-      sipc = curl_exec(SipcMessage.msg_received(self, sipc_response))
-    end
+    pulse
 
     @logger.info "fetion keep alive success"
   end
@@ -296,6 +291,31 @@ class Fetion
     pulse
 
     @logger.info "fetion logout success"
+  end
+
+  def create_session(sipc_response)
+    @logger.info "fetion create session"
+
+    sipc_response = curl_exec(SipcMessage.create_session(self, sipc_response))
+    pulse unless sipc_response
+
+    @logger.info "fetion create session success"
+  end
+
+  def session_connected(sipc_response)
+    @logger.info "fetion session connected"
+
+    curl_exec(SipcMessage.session_connected(self, sipc_response))
+
+    @logger.info "fetion session connected success"
+  end
+
+  def msg_received(message_response)
+    @logger.info "fetion msg received"
+
+    curl_exec(SipcMessage.msg_received(self, message_response))
+
+    @logger.info "fetion msg received success"
   end
 
   def parse_ssic(response)
@@ -347,9 +367,9 @@ class Fetion
     sipc_response = SipcMessage.sipc_response(response.body, self)
     
     if sipc_response
-      raise Fetion::SipcException.new(sipc_response, "request_url: #{url}, request_body: #{body}, sipc_response: #{sipc_response}") unless expected === sipc_response
+      raise Fetion::SipcException.new(sipc_response, "request_url: #{url}, request_body: #{body}, sipc_response: #{sipc_response}") unless sipc_response.class == expected
     
-      if sipc_response.code == 401
+      if sipc_response.first_line =~ /401/
         # unauthorized, get nonce, key and signature
         raise Fetion::NoNonceException.new("Fetion Error: No nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
         @nonce = $1
@@ -361,6 +381,10 @@ class Fetion
         @logger.debug "key: #{@key}"
         @logger.debug "signature: #{@signature}"
         @logger.debug "response: #{@response}"
+      elsif sipc_response.contain?('I')
+        create_session(sipc_response)
+      elsif sipc_response.contain?('O')
+        session_connected(sipc_response)
       else
         response.body.scan(%r{<results>.*?</results>}).each do |results|
           doc = Nokogiri::XML(results)
@@ -370,11 +394,9 @@ class Fetion
           end
           doc.root.xpath("/results/user-info/contact-list/buddy-lists/buddy-list").each do |buddy_list|
             @buddy_lists << Fetion::BuddyList.parse(buddy_list)
-            @logger.debug "buddy_lists: #{@buddy_lists.inspect}"
           end
           doc.root.xpath("/results/user-info/contact-list/buddies/b").each do |buddy|
             @buddies << {:uri => buddy["u"]}
-            @logger.debug "buddies: #{@buddies.inspect}"
           end
         end
         
@@ -395,7 +417,7 @@ class Fetion
         receive_messages.each do |message_response|
           message_header, message_content = message_response.split(/\r\n\r\n/)
           sip = sent_at = length = nil
-          message_header.split(/(\r)?\n/).each do |line|
+          message_header.split(/\r\n/).each do |line|
             case line
             when /^F: sip:(.+)/ then sip = $1
             when /^D: (.+)/ then sent_at = Time.parse($1)
@@ -404,6 +426,7 @@ class Fetion
           end
           text = message_content.slice(0, length)
           @receives << Fetion::Message.new(sip, sent_at, text)
+          msg_received(message_response)
         end
       end
     end
@@ -455,11 +478,10 @@ class Fetion::AddBuddyException < FetionException; end
 class Fetion::GetContactsException < FetionException; end
 class Fetion::NoUserException < FetionException; end
 class Fetion::SipcException < FetionException
-  attr_reader :code, :description, :message
+  attr_reader :first_line, :message
   
   def initialize(sipc_response, message)
-    @code = sipc_response.code
-    @description = sipc_response.description
+    @first_line = sipc_response.first_line
     @message = message
   end
 end

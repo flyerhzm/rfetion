@@ -60,31 +60,41 @@ class SipcMessage
 
   def self.create_session(fetion, last_sipc_response)
     header = {}
-    last_sipc_response.header.split("\r\n")[1..-1].each do |line|
-      key, value = line.split(': ', 2)
-      if key == 'K'
-        header['K'] ? header['K'] << value : header['K'] = [value]
-      else
-        header[key] = value
+    last_sipc_response.sections.each do |section|
+      sipc_header = section.split("\r\n\r\n").first
+      if sipc_header.split("\r\n").first =~ %r|I #{fetion.sid} SIP-C/4.0|
+        sipc_header.split("\r\n")[1..-1].each do |line|
+          key, value = line.split(': ', 2)
+          if key == 'K'
+            header['K'] ? header['K'] << value : header['K'] = [value]
+          else
+            header[key] = value
+          end
+        end
+        body = %Q|v=0\r\no=-0 0 IN 127.0.0.1:8001\r\ns=session\r\nc=IN IP4 127.0.0.1:8001\r\nt=0 0\r\nm=message 8001 sip sip:#{fetion.uri}\r\n|
+        return sipc_response_create(:I => header['I'], :Q => header['Q'], :F => header['F'], :K => header['K'], :body => body, :f_first => false)
       end
     end
-    body = %Q|v=0\r\no=-0 0 IN 127.0.0.1:8001\r\ns=session\r\nc=IN IP4 127.0.0.1:8001\r\nt=0 0\r\nm=message 8001 sip sip:#{fetion.uri}\r\n|
-    sipc_response_create(:I => header['I'], :Q => header['Q'], :F => header['F'], :K => header['K'], :body => body, :f_first => false)
   end
 
   def self.session_connected(fetion, last_sipc_response)
     header = {}
-    last_sipc_response.header.split("\r\n")[1..-1].each do |line|
-      key, value = line.split(': ', 2)
-      header[key] = value
+    last_sipc_response.sections.each do |section|
+      sipc_header = section.split("\r\n\r\n").first
+      if sipc_header.split("\r\n").first =~ %r|O #{fetion.sid} SIP-C/4.0|
+        sipc_header.split("\r\n")[1..-1].each do |line|
+          key, value = line.split(': ', 2)
+          header[key] = value
+        end
+        header['K'] = ['text/html-fragment', 'text/plain']
+        return sipc_response_create(:F => header['F'], :I => header['I'], :Q => header['Q'], :K => header['K'], :with_l => false)
+      end
     end
-    header['K'] = ['text/html-fragment', 'text/plain']
-    sipc_response_create(:F => header['F'], :I => header['I'], :Q => header['Q'], :K => header['K'], :with_l => false)
   end
 
-  def self.msg_received(fetion, last_sipc_response)
+  def self.msg_received(fetion, message_response)
     header = {}
-    last_sipc_response.header.split("\r\n")[1..-1].each do |line|
+    message_response.split("\r\n\r\n").first.split("\r\n")[1..-1].each do |line|
       key, value = line.split(': ', 2)
       header[key] = value
     end
@@ -98,29 +108,48 @@ class SipcMessage
   def self.sipc_response(http_response_body, fetion)
     return if http_response_body == Fetion::SIPP
     
-    header, body = http_response_body.split(/\r\n\r\n/, 2)
-    if header =~ %r{^SIP-C/4.0}
-      sipc, code, message = header.split(/\r\n/).first.split(' ', 3)
-      RESPONSES[code.to_i].new(code.to_i, message, header, body)
-    elsif header =~ %r{(BN|M|I|O) #{fetion.sid} SIP-C/4.0}
-      SipcMessage::OK.new(200, $1, header, body)
+    sections = []
+    body = http_response_body
+    while true
+      index = body.index(%r{(BN|M|I|O) #{fetion.sid} SIP-C/4.0}, 1)
+      if index
+        sections << body[0...index]
+        body = body[index..-1]
+      else
+        sections << body
+        break
+      end
     end
+    SipcMessage::Response.new(sections)
   rescue NoMethodError
-    raise FetionException.new("Fetion error: No response to #{code} #{message}")
+    raise FetionException.new("Fetion error: No response to #{sections.first.split("\r\n").first}")
   end
 
   class Response
-    attr_reader :code, :description, :header, :body
+    attr_reader :sections
 
-    def initialize(code, description, header, body)
-      @code = code
-      @description = description
-      @header = header
-      @body = body
+    def initialize(sections)
+      @sections = sections
+    end
+
+    def class
+      if first_line =~ %r|^SIP-C/4.0 (\d{3})|
+        RESPONSES[$1.to_i]
+      else
+        SipcMessage::OK
+      end
+    end
+
+    def first_line
+      @sections.first.split("\r\n").first
+    end
+
+    def contain?(command)
+      @sections.find {|section| section.split("\r\n").first.index(%r|#{command} |) }
     end
 
     def to_s
-      "#@code #@description"
+      @sections.first.split("\r\n").first
     end
   end
 

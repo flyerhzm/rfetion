@@ -341,6 +341,7 @@ L: 61
 EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => "SIPP")
       @fetion.get_contacts
       @fetion.contacts.collect {|c| c.sid}.should == ["793401629", "737769829", "660250260", "926157269", "669700695", "760087520", "480867781", "572512981", "638993408"]
       @fetion.receives.collect {|r| r.sip}.should == ["480867781@fetion.com.cn;p=16105"]
@@ -519,6 +520,7 @@ EOF
       @fetion.contacts.find {|contact| contact.id == '295098062'}.status.should == "400"
     end
 
+
     it "should get receive msg for first session" do
       response_body =<<-EOF
 I 730020377 SIP-C/4.0
@@ -572,6 +574,64 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=14", :body => response_body)
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=15", :body => "SIPP")
+      @fetion.keep_alive
+      @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
+      @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Sun, 16 May 2010 02:16:00 GMT")]
+      @fetion.receives.collect {|r| r.text}.should == ["test"]
+    end
+
+    it "should get receive msg without pulse for first session" do
+      response_body =<<-EOF
+I 730020377 SIP-C/4.0
+F: sip:638993408@fetion.com.cn;p=2242
+I: -13
+K: text/plain
+K: text/html-fragment
+K: multiparty
+K: nudge
+Q: 14 I
+L: 21
+
+s=session
+m=message SIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      response_body =<<-EOF
+O 730020377 SIP-C/4.0
+I: -13
+Q: 2 O
+K: text/plain
+K: text/html-fragment
+K: multiparty
+K: nudge
+F: sip:638993408@fetion.com.cn;p=2242
+
+A 730020377 SIP-C/4.0
+F: sip:638993408@fetion.com.cn;p=2242
+I: -13
+Q: 14 A
+
+SIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
+      response_body =<<-EOF
+M 730020377 SIP-C/4.0
+I: -13
+Q: 4 M
+F: sip:638993408@fetion.com.cn;p=2242
+C: text/html-fragment
+K: SaveHistory
+L: 4
+D: Sun, 16 May 2010 02:16:00 GMT
+XI: 0dbdc4e81bff425dbcf8b591b497fe94
+
+testSIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=14", :body => "SIPP")
       @fetion.keep_alive
       @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
       @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Sun, 16 May 2010 02:16:00 GMT")]
