@@ -69,6 +69,7 @@ W: Digest algorithm="SHA1-sess-v4",nonce="1104E253661D71141DFE3FB020143E5A",key=
 
 SIPP
 EOF
+        response_body.gsub!("\n", "\r\n")
         FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=3", :body => response_body)
         @fetion.register_first
 
@@ -90,6 +91,7 @@ W: Digest algorithm="SHA1-sess-v4",nonce=""
 
 SIPP
 EOF
+        response_body.gsub!("\n", "\r\n")
         FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=3", :body => response_body)
         lambda { @fetion.register_first }.should raise_exception(Fetion::NoNonceException)
       end
@@ -120,6 +122,7 @@ L: 125
 
 <events><event type="SyncUserInfo"><user-info><score value="3760" level="7" level-score="3718"/></user-info></event></events>SIPP
 EOF
+        response_body.gsub!("\n", "\r\n")
         FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=5", :body => response_body)
         @fetion.register_second
 
@@ -146,6 +149,7 @@ L: 59
 
 <results><group-list  version ="1" ></group-list></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=7", :body => "SIPP")
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -208,6 +212,7 @@ Q: 10 BN
 
 <events><event type="MobileMailBoxChanged"><mail unread-count="1"/></event></events>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=8", :body => response_body)
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -217,6 +222,7 @@ L: 835
 
 <results><topic-list event="RecommendGroupTopic" version="171" max-count="5"><topic title="陌上人如玉 韩庚世无双" url="http://group.fetion.com.cn/topic/common/31333572/196313?c=[c:m161.com.cn]" create-date="2010-5-6 15:36:30" id="171" topic-type="1"  /><topic title="世博园10大最美景观" url="http://group.fetion.com.cn/topic/common/8249155/196251?c=[c:m161.com.cn]" create-date="2010-5-6 15:33:49" id="170" topic-type="1"  /><topic title="诺基亚价值百万的手机" url="http://group.fetion.com.cn/topic/common/7366464/196288?c=[c:m161.com.cn]" create-date="2010-5-6 15:31:57" id="169" topic-type="1"  /><topic title="选秀调查：伪娘的真相" url="http://group.fetion.com.cn/topic/common/30660603/196323?c=[c:m161.com.cn]" create-date="2010-5-6 15:22:51" id="168" topic-type="1"  /></topic-list></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=9", :body => response_body)
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -226,12 +232,13 @@ L: 61
 
 <results><contacts version="326661305" ></contacts></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
       @fetion.get_contacts
       @fetion.contacts.collect {|contact| contact.sid}.should == ["793401629", "737769829", "660250260", "926157269", "669700695", "760087520", "480867781", "572512981", "638993408"]
     end
 
-    it "should get received msg" do
+    it "should get received msg while get contacts" do
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=6", :body => "SIPP")
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -241,6 +248,7 @@ L: 59
 
 <results><group-list  version ="1" ></group-list></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=7", :body => "SIPP")
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -311,6 +319,7 @@ Q: 11 BN
 
 <events><event type="PresenceChanged"><contacts><c id="295098062"><p v="0" sid="638993408" su="sip:638993408@fetion.com.cn;p=2242" m="13634102006" c="CMCC" cs="0" s="1" l="0" svc="" n="梦妍" i="" p="0" sms="0.0:0:0" sp="0" sh="0"/><pr di="" b="0" d="" dt="" dc="0"/></c></contacts></event></events>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=8", :body => response_body)
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -320,6 +329,7 @@ L: 835
 
 <results><topic-list event="RecommendGroupTopic" version="171" max-count="5"><topic title="陌上人如玉 韩庚世无双" url="http://group.fetion.com.cn/topic/common/31333572/196313?c=[c:m161.com.cn]" create-date="2010-5-6 15:36:30" id="171" topic-type="1"  /><topic title="世博园10大最美景观" url="http://group.fetion.com.cn/topic/common/8249155/196251?c=[c:m161.com.cn]" create-date="2010-5-6 15:33:49" id="170" topic-type="1"  /><topic title="诺基亚价值百万的手机" url="http://group.fetion.com.cn/topic/common/7366464/196288?c=[c:m161.com.cn]" create-date="2010-5-6 15:31:57" id="169" topic-type="1"  /><topic title="选秀调查：伪娘的真相" url="http://group.fetion.com.cn/topic/common/30660603/196323?c=[c:m161.com.cn]" create-date="2010-5-6 15:22:51" id="168" topic-type="1"  /></topic-list></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=9", :body => response_body)
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -329,6 +339,7 @@ L: 61
 
 <results><contacts version="326661305" ></contacts></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
       @fetion.get_contacts
       @fetion.contacts.collect {|c| c.sid}.should == ["793401629", "737769829", "660250260", "926157269", "669700695", "760087520", "480867781", "572512981", "638993408"]
@@ -355,6 +366,7 @@ T: sip:638993408@fetion.com.cn;p=2242
 
 SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
       @fetion.send_msg('sip:638993408@fetion.com.cn;p=2242', 'test')
     end
@@ -375,6 +387,7 @@ Q: 1 M
 
 SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
       @fetion.send_sms('sip:638993408@fetion.com.cn;p=2242', 'test')
     end
@@ -395,6 +408,7 @@ L: 92
 
 <results><schedule-sms-list version="36"/><schedule-sms id="2124923" version="1"/></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
       @fetion.set_schedule_sms('sip:638993408@fetion.com.cn;p=2242', 'test', Time.at(Time.now + 24*60*60))
     end
@@ -428,6 +442,7 @@ Q: 18 BN
 
 <events><event type="PresenceChanged"><contacts><c id="295098062"><p v="326156919" sid="638993408" su="sip:638993408@fetion.com.cn;p=2242" m="13634102006" c="CMCC" cs="0" s="1" l="0" svc="" n="梦研" i="" p="0" sms="0.0:0:0" sp="0" sh="0"/><pr di="PCCL030333103486" b="400" d="" dt="PC" dc="17"/></c></contacts></event></events>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
       @fetion.add_buddy(:friend_mobile => '13634102006')
     end
@@ -448,6 +463,7 @@ L: 166
 
 <results><contact uri="tel:15800681507" version="0" user-id="625007505" mobile-no="15800681507" basic-service-status="0" carrier="CMCC" carrier-status="0"/></results>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
       @fetion.get_contact_info(:friend_mobile => '15800681507')
     end
@@ -461,6 +477,7 @@ Q: 1 S
 
 SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
       lambda {@fetion.get_contact_info(:friend_mobile => '15800681505')}.should raise_exception(Fetion::SipcException)
     end
@@ -496,9 +513,69 @@ Q: 11 BN
 
 <events><event type="PresenceChanged"><contacts><c id="295098062"><pr di="PCCL030340538483" b="400" d="" dt="PC" dc="17"/></c></contacts></event></events>SIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
       @fetion.keep_alive
       @fetion.contacts.find {|contact| contact.id == '295098062'}.status.should == "400"
+    end
+
+    it "should get receive msg for first session" do
+      response_body =<<-EOF
+I 730020377 SIP-C/4.0
+F: sip:638993408@fetion.com.cn;p=2242
+I: -13
+K: text/plain
+K: text/html-fragment
+K: multiparty
+K: nudge
+Q: 14 I
+L: 21
+
+s=session
+m=message SIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => "SIPP")
+      response_body =<<-EOF
+O 730020377 SIP-C/4.0
+I: -13
+Q: 2 O
+K: text/plain
+K: text/html-fragment
+K: multiparty
+K: nudge
+F: sip:638993408@fetion.com.cn;p=2242
+
+A 730020377 SIP-C/4.0
+F: sip:638993408@fetion.com.cn;p=2242
+I: -13
+Q: 14 A
+
+SIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
+      response_body =<<-EOF
+M 730020377 SIP-C/4.0
+I: -13
+Q: 4 M
+F: sip:638993408@fetion.com.cn;p=2242
+C: text/html-fragment
+K: SaveHistory
+L: 4
+D: Sun, 16 May 2010 02:16:00 GMT
+XI: 0dbdc4e81bff425dbcf8b591b497fe94
+
+testSIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=14", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=15", :body => "SIPP")
+      @fetion.keep_alive
+      @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
+      @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Sun, 16 May 2010 02:16:00 GMT")]
+      @fetion.receives.collect {|r| r.text}.should == ["test"]
     end
 
     it "should get receive msg" do
@@ -515,11 +592,8 @@ XI: 7eb8bc4e9df742b2aa557f9e85c8d8af
 
 testtesttestSIPP
 EOF
+      response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
-      @fetion.keep_alive
-      @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
-      @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Tue, 11 May 2010 15:18:56 GMT")]
-      @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]
     end
   end
 end

@@ -8,8 +8,8 @@ require 'openssl'
 require 'logger'
 
 class Fetion
-  attr_accessor :mobile_no, :sid, :password
-  attr_reader :user_id, :uri, :contacts, :buddy_lists, :response, :nickname, :receives
+  attr_accessor :mobile_no, :sid, :password, :seq, :ssic, :guid, :uri
+  attr_reader :user_id, :contacts, :buddy_lists, :response, :nickname, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
@@ -46,6 +46,15 @@ class Fetion
     fetion.instance_eval &block
 
     fetion.logout
+  end
+
+  def Fetion.keep_alive(options)
+    Fetion.open(options) do
+      get_contacts
+      keep_alive
+      sleep(15)
+      keep_alive
+    end
   end
 
   # options
@@ -269,7 +278,13 @@ class Fetion
   def keep_alive
     @logger.info "fetion keep alive"
     
-    pulse
+    sipc_response = pulse
+    if sipc_response.header and sipc_response.body =~ /^s=session\r\nm=message/m
+      sipc_response = curl_exec(SipcMessage.create_session(self, sipc_response))
+      sipc_response = pulse
+      sipc_response = curl_exec(SipcMessage.session_connected(self, sipc_response))
+      sipc = curl_exec(SipcMessage.msg_received(self, sipc_response))
+    end
 
     @logger.info "fetion keep alive success"
   end
@@ -376,9 +391,9 @@ class Fetion
         end
         
         receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?BN}m)
-        receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP$}m) if receive_messages.empty?
+        receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP\r?\n?$}m) if receive_messages.empty?
         receive_messages.each do |message_response|
-          message_header, message_content = message_response.split(/(\r)?\n(\r)?\n/)
+          message_header, message_content = message_response.split(/\r\n\r\n/)
           sip = sent_at = length = nil
           message_header.split(/(\r)?\n/).each do |line|
             case line
@@ -392,7 +407,7 @@ class Fetion
         end
       end
     end
-    response
+    sipc_response
   end
 
   def next_url(t = 's')

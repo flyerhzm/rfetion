@@ -58,25 +58,61 @@ class SipcMessage
     sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '3 R', :X => 0, :with_l => false)
   end
 
+  def self.create_session(fetion, last_sipc_response)
+    header = {}
+    last_sipc_response.header.split("\r\n")[1..-1].each do |line|
+      key, value = line.split(': ', 2)
+      if key == 'K'
+        header['K'] ? header['K'] << value : header['K'] = [value]
+      else
+        header[key] = value
+      end
+    end
+    body = %Q|v=0\r\no=-0 0 IN 127.0.0.1:8001\r\ns=session\r\nc=IN IP4 127.0.0.1:8001\r\nt=0 0\r\nm=message 8001 sip sip:#{fetion.uri}\r\n|
+    sipc_response_create(:I => header['I'], :Q => header['Q'], :F => header['F'], :K => header['K'], :body => body, :f_first => false)
+  end
+
+  def self.session_connected(fetion, last_sipc_response)
+    header = {}
+    last_sipc_response.header.split("\r\n")[1..-1].each do |line|
+      key, value = line.split(': ', 2)
+      header[key] = value
+    end
+    header['K'] = ['text/html-fragment', 'text/plain']
+    sipc_response_create(:F => header['F'], :I => header['I'], :Q => header['Q'], :K => header['K'], :with_l => false)
+  end
+
+  def self.msg_received(fetion, last_sipc_response)
+    header = {}
+    last_sipc_response.header.split("\r\n")[1..-1].each do |line|
+      key, value = line.split(': ', 2)
+      header[key] = value
+    end
+    sipc_response_create(:F => header['F'], :I => header['I'], :Q => header['Q'], :with_l => false)
+  end
+
   def self.sipc_response(http_response_body, fetion)
     return if http_response_body == Fetion::SIPP
     
-    if http_response_body =~ %r{^SIP-C/4.0}
-      sipc, code, *message = http_response_body.split(/(\r)?\n/).first.split(' ')
-      RESPONSES[code.to_i].new(code.to_i, message.join(' '))
-    elsif http_response_body =~ %r{(BN|M) #{fetion.sid} SIP-C/4.0}
-      SipcMessage::OK.new(200, $1)
+    header, body = http_response_body.split(/\r\n\r\n/, 2)
+    if header =~ %r{^SIP-C/4.0}
+      sipc, code, message = header.split(/\r\n/).first.split(' ', 3)
+      RESPONSES[code.to_i].new(code.to_i, message, header, body)
+    elsif header =~ %r{(BN|M|I|O) #{fetion.sid} SIP-C/4.0}
+      SipcMessage::OK.new(200, $1, header, body)
     end
   rescue NoMethodError
-    raise FetionException.new("Fetion error: No response to #{code} #{message.join(' ')}")
+    raise FetionException.new("Fetion error: No response to #{code} #{message}")
   end
 
   class Response
-    attr_reader :code, :description
+    attr_reader :code, :description, :header, :body
 
-    def initialize(code, description)
+    def initialize(code, description, header, body)
       @code = code
       @description = description
+      @header = header
+      @body = body
     end
 
     def to_s
@@ -112,6 +148,27 @@ class SipcMessage
       sorted_key = [:F, :I, :Q, :CN, :CL, :A, :AK, :X, :T, :K, :N, :SV]
       sipc = "#{options.delete(:command)} fetion.com.cn SIP-C/4.0\r\n"
       sorted_key.each {|k| sipc += "#{k}: #{options[k]}\r\n" if options[k]}
+      sipc += "L: #{body == '' ? 4 : body.size}\r\n" if with_l
+      sipc += "\r\n#{body}#{Fetion::SIPP}"
+      sipc
+    end
+
+    def self.sipc_response_create(options)
+      options = {:body => '', :with_l => true, :f_first => true}.merge(options)
+      body = options.delete(:body)
+      with_l = options.delete(:with_l)
+
+      sorted_key = options.delete(:f_first) ? [:F, :I, :Q, :K] : [:I, :Q, :F, :K]
+      sipc = "SIP-C/4.0 200 OK\r\n"
+      sorted_key.each do |k|
+        if options[k]
+          if k == :K
+            sipc += options[:K].collect { |v| "#{k}: #{v}\r\n" }.join("")
+          else
+            sipc += "#{k}: #{options[k]}\r\n"
+          end
+        end
+      end
       sipc += "L: #{body == '' ? 4 : body.size}\r\n" if with_l
       sipc += "\r\n#{body}#{Fetion::SIPP}"
       sipc
