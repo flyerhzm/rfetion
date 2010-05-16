@@ -318,6 +318,14 @@ class Fetion
     @logger.info "fetion msg received success"
   end
 
+  def close_session
+    @logger.info "fetion close_session"
+
+    curl_exec(SipcMessage.close_session(self))
+
+    @logger.info "fetion close_session success"
+  end
+
   def parse_ssic(response)
     raise Fetion::LoginException.new('Fetion Error: Login failed.') unless Net::HTTPSuccess === response
     raise Fetion::LoginException.new('Fetion Error: No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/

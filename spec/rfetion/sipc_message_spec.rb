@@ -229,7 +229,26 @@ m=message SIPP
 EOF
     http_response_body.gsub!("\n", "\r\n").chomp!
     last_sipc_response = SipcMessage.sipc_response(http_response_body, @fetion)
-    sipc_message = %Q|SIP-C/4.0 200 OK\r\nI: -13\r\nQ: 14 I\r\nF: sip:638993408@fetion.com.cn;p=2242\r\nK: text/plain\r\nK: text/html-fragment\r\nK: multiparty\r\nK: nudge\r\nL: 129\r\n\r\nv=0\r\no=-0 0 IN 127.0.0.1:8001\r\ns=session\r\nc=IN IP4 127.0.0.1:8001\r\nt=0 0\r\nm=message 8001 sip sip:730020377@fetion.com.cn;p=6907\r\nSIPP|
+    sipc_message =<<-EOF
+SIP-C/4.0 200 OK
+I: -13
+Q: 14 I
+F: sip:638993408@fetion.com.cn;p=2242
+K: text/plain
+K: text/html-fragment
+K: multiparty
+K: nudge
+L: 129
+
+v=0
+o=-0 0 IN 127.0.0.1:8001
+s=session
+c=IN IP4 127.0.0.1:8001
+t=0 0
+m=message 8001 sip sip:730020377@fetion.com.cn;p=6907
+SIPP
+EOF
+    sipc_message.gsub!("\n", "\r\n").chomp!
     SipcMessage.create_session(@fetion, last_sipc_response).should == sipc_message
   end
 
