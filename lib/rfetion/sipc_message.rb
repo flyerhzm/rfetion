@@ -91,6 +91,10 @@ class SipcMessage
     sipc_response_create(:F => header['F'], :I => header['I'], :Q => header['Q'], :with_l => false)
   end
 
+  def self.close_session(fetion, receiver_uri)
+    sipc_create(:command => 'B', :F => fetion.sid, :I => fetion.next_call, :Q => '2 B', :T => "sip:#{receiver_uri}", :with_l => false)
+  end
+
   def self.sipc_response(http_response_body, fetion)
     return if http_response_body == Fetion::SIPP
     
