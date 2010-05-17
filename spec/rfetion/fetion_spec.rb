@@ -654,6 +654,11 @@ testtesttestSIPP
 EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => "SIPP")
+      @fetion.keep_alive
+      @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
+      @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Tue, 11 May 2010 15:18:56 GMT")]
+      @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]
     end
   end
 end

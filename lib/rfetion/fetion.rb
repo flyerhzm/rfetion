@@ -389,37 +389,10 @@ class Fetion
         @logger.debug "key: #{@key}"
         @logger.debug "signature: #{@signature}"
         @logger.debug "response: #{@response}"
-      elsif sipc_response.contain?('I')
-        create_session(sipc_response)
-      elsif sipc_response.contain?('O')
-        session_connected(sipc_response)
-      else
-        response.body.scan(%r{<results>.*?</results>}).each do |results|
-          doc = Nokogiri::XML(results)
-          doc.root.xpath("/results/user-info/personal").each do |personal_element|
-            @nickname = personal_element['nickname']
-            @logger.debug "nickname: #@nickname"
-          end
-          doc.root.xpath("/results/user-info/contact-list/buddy-lists/buddy-list").each do |buddy_list|
-            @buddy_lists << Fetion::BuddyList.parse(buddy_list)
-          end
-          doc.root.xpath("/results/user-info/contact-list/buddies/b").each do |buddy|
-            @buddies << {:uri => buddy["u"]}
-          end
-        end
-        
-        response.body.scan(%r{<events>.*?</events>}).each do |events|
-          doc = Nokogiri::XML(events)
-          doc.root.xpath("/events/event[@type='PresenceChanged']/contacts/c").each do |c|
-            contact = contacts.find {|contact| contact.id == c['id']}
-            if contact
-              contact.status = c.children.first['b']
-            else
-              @contacts << Fetion::Contact.parse(c) unless c['id'] == @user_id
-            end
-          end
-        end
-        
+      end
+      create_session(sipc_response) if sipc_response.contain?('I')
+      session_connected(sipc_response) if sipc_response.contain?('O')
+      if sipc_response.contain?('M')
         receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?BN}m)
         receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP\r?\n?$}m) if receive_messages.empty?
         receive_messages.each do |message_response|
@@ -435,6 +408,32 @@ class Fetion
           text = message_content.slice(0, length)
           @receives << Fetion::Message.new(sip, sent_at, text)
           msg_received(message_response)
+        end
+      end
+
+      response.body.scan(%r{<results>.*?</results>}).each do |results|
+        doc = Nokogiri::XML(results)
+        doc.root.xpath("/results/user-info/personal").each do |personal_element|
+          @nickname = personal_element['nickname']
+          @logger.debug "nickname: #@nickname"
+        end
+        doc.root.xpath("/results/user-info/contact-list/buddy-lists/buddy-list").each do |buddy_list|
+          @buddy_lists << Fetion::BuddyList.parse(buddy_list)
+        end
+        doc.root.xpath("/results/user-info/contact-list/buddies/b").each do |buddy|
+          @buddies << {:uri => buddy["u"]}
+        end
+      end
+      
+      response.body.scan(%r{<events>.*?</events>}).each do |events|
+        doc = Nokogiri::XML(events)
+        doc.root.xpath("/events/event[@type='PresenceChanged']/contacts/c").each do |c|
+          contact = contacts.find {|contact| contact.id == c['id']}
+          if contact
+            contact.status = c.children.first['b']
+          else
+            @contacts << Fetion::Contact.parse(c) unless c['id'] == @user_id
+          end
         end
       end
     end
