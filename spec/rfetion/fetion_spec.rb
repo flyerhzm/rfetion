@@ -495,7 +495,7 @@ EOF
     end
   end
 
-  describe "keep-alive" do
+  describe "pulse" do
     before :each do
       @fetion.instance_variable_set(:@seq, 10)
       @fetion.instance_variable_set(:@sid, "730020377")
@@ -516,7 +516,7 @@ Q: 11 BN
 EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
-      @fetion.keep_alive
+      @fetion.pulse
       @fetion.contacts.find {|contact| contact.id == '295098062'}.status.should == "400"
     end
 
@@ -574,7 +574,7 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=14", :body => response_body)
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=15", :body => "SIPP")
-      @fetion.keep_alive
+      @fetion.pulse
       @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
       @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Sun, 16 May 2010 02:16:00 GMT")]
       @fetion.receives.collect {|r| r.text}.should == ["test"]
@@ -632,7 +632,7 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=14", :body => "SIPP")
-      @fetion.keep_alive
+      @fetion.pulse
       @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
       @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Sun, 16 May 2010 02:16:00 GMT")]
       @fetion.receives.collect {|r| r.text}.should == ["test"]
@@ -655,7 +655,7 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => "SIPP")
-      @fetion.keep_alive
+      @fetion.pulse
       @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242"]
       @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Tue, 11 May 2010 15:18:56 GMT")]
       @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]

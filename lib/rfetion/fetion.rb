@@ -8,7 +8,7 @@ require 'openssl'
 require 'logger'
 
 class Fetion
-  attr_accessor :mobile_no, :sid, :password, :seq, :ssic, :guid, :uri
+  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri
   attr_reader :user_id, :contacts, :buddy_lists, :response, :nickname, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
@@ -51,9 +51,9 @@ class Fetion
   def Fetion.keep_alive(options)
     Fetion.open(options) do
       get_contacts
-      keep_alive
+      pulse
       sleep(15)
-      keep_alive
+      pulse
       p receives
     end
   end
@@ -284,6 +284,14 @@ class Fetion
     @logger.info "fetion keep alive success"
   end
 
+  def pulse(expected=SipcMessage::OK)
+    @logger.info "fetion pulse"
+
+    curl_exec(SIPP, next_url, expected)
+
+    @logger.info "fetion pulse success"
+  end
+
   def logout
     @logger.info "fetion logout"
 
@@ -351,10 +359,6 @@ class Fetion
     @logger.debug "mobile_no: " + @mobile_no
     @logger.debug "user_id: " + @user_id
     @logger.debug "sid: " + @sid
-  end
-
-  def pulse(expected=SipcMessage::OK)
-    curl_exec(SIPP, next_url, expected)
   end
 
   def curl_exec(body='', url=next_url, expected=SipcMessage::OK)

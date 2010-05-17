@@ -2,12 +2,12 @@ require 'guid'
 
 class SipcMessage
   def self.register_first(fetion)
-    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '1 R', :CN => ::Guid.new.hexdigest.upcase, :CL => %Q|type="pc" ,version="#{Fetion::VERSION}"|, :with_l => false)
+    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :CN => ::Guid.new.hexdigest.upcase, :CL => %Q|type="pc" ,version="#{Fetion::VERSION}"|, :with_l => false)
   end
 
   def self.register_second(fetion)
     body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{fetion.mobile_no}" user-id="#{fetion.user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
-    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '2 R', :A => %Q|Digest response="#{fetion.response}",algorithm="SHA1-sess-v4"|, :AK => 'ak-value', :body => body)
+    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :A => %Q|Digest response="#{fetion.response}",algorithm="SHA1-sess-v4"|, :AK => 'ak-value', :body => body)
   end
 
   def self.get_group_list(fetion)
@@ -55,7 +55,7 @@ class SipcMessage
   end
 
   def self.logout(fetion)
-    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => '3 R', :X => 0, :with_l => false)
+    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :X => 0, :with_l => false)
   end
 
   def self.create_session(fetion, last_sipc_response)
@@ -103,6 +103,11 @@ class SipcMessage
 
   def self.close_session(fetion, receiver_uri)
     sipc_create(:command => 'B', :F => fetion.sid, :I => fetion.next_call, :Q => '2 B', :T => "sip:#{receiver_uri}", :with_l => false)
+  end
+
+  def self.keep_alive(fetion)
+    body = %Q|<args><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /></args>|
+    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :N => 'KeepAlive', :body => body)
   end
 
   def self.sipc_response(http_response_body, fetion)

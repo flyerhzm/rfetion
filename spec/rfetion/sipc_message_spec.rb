@@ -19,6 +19,7 @@ describe SipcMessage do
     Guid.stubs(:new).returns(guid)
     guid.stubs(:hexdigest).returns(hexdigest)
     hexdigest.stubs(:upcase).returns("19D28D4978125CAA4F6E54277BA7D9EF")
+    @fetion.alive = 0
     sipc_message =<<-EOF
 R fetion.com.cn SIP-C/4.0
 F: 730020377
@@ -34,6 +35,7 @@ EOF
   end
 
   it "should get register_second" do
+    @fetion.alive = 1
     sipc_message =<<-EOF
 R fetion.com.cn SIP-C/4.0
 F: 730020377
@@ -313,6 +315,22 @@ EOF
     SipcMessage.msg_received(@fetion, http_response_body).should == sipc_message
   end
 
+  it "should keep alive" do
+    @fetion.alive = 3
+    sipc_message =<<-EOF
+R fetion.com.cn SIP-C/4.0
+F: 730020377
+I: 1
+Q: 4 R
+N: KeepAlive
+L: 97
+
+<args><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /></args>SIPP
+    EOF
+    sipc_message.gsub!("\n", "\r\n").chomp!
+    SipcMessage.keep_alive(@fetion).should == sipc_message
+  end
+
   it "should close session" do
     @fetion.call = 5
     sipc_message =<<-EOF
@@ -329,6 +347,7 @@ EOF
   end
 
   it "should logout" do
+    @fetion.alive = 2
     sipc_message =<<-EOF
 R fetion.com.cn SIP-C/4.0
 F: 730020377
