@@ -660,5 +660,31 @@ EOF
       @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Tue, 11 May 2010 15:18:56 GMT")]
       @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]
     end
+
+    it "should get add buddy message" do
+      response_body =<<-EOF
+BN 480867781 SIP-C/4.0
+N: contact
+I: 1
+Q: 5 BN
+L: 207
+
+<events><event type="AddBuddyApplication"><application uri="sip:638993408@fetion.com.cn;p=2242" desc="梦研" type="0" time="2010-05-18 13:32:58" addbuddy-phrase-id="1" user-id="295098062"/></event></events>SIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 7
+Q: 1 S
+L: 368
+
+<results><contact uri="sip:638993408@fetion.com.cn;p=2242" version="0" user-id="295098062" sid="638993408" mobile-no="13634102006" basic-service-status="1" carrier="CMCC" carrier-status="0" portrait-crc="0" name="" nickname="梦研" gender="0" birth-date="1900-01-01" birthday-valid="0" impresa="" carrier-region="CN.zj.571." user-region="" score-level="0"/></results>EOF
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
+      @fetion.pulse
+    end
   end
 end

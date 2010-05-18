@@ -183,6 +183,22 @@ EOF
     SipcMessage.get_contact_info(@fetion, "tel:15800681507").should == sipc_message
   end
 
+  it "should get contact info with sip" do
+    @fetion.call = 10
+    sipc_message =<<-EOF
+S fetion.com.cn SIP-C/4.0
+F: 730020377
+I: 11
+Q: 1 S
+N: GetContactInfoV4
+L: 65
+
+<args><contact uri="sip:638993408@fetion.com.cn;p=2242" /></args>SIPP
+EOF
+    sipc_message.gsub!("\n", "\r\n").chomp!
+    SipcMessage.get_contact_info(@fetion, "sip:638993408@fetion.com.cn;p=2242").should == sipc_message
+  end
+
   it "should add buddy" do
     @fetion.call = 9
     @fetion.instance_variable_set(:@nickname, 'flyerhzm')
@@ -359,5 +375,24 @@ SIPP
 EOF
     sipc_message.gsub!("\n", "\r\n").chomp!
     SipcMessage.logout(@fetion).should == sipc_message
+  end
+
+  it "should handle contact request" do
+    @fetion.call = 8
+    sipc_message =<<-EOF
+S fetion.com.cn SIP-C/4.0
+F: 730020377
+I: 9
+Q: 1 S
+N: HandleContactRequestV4
+L: 186
+
+<args><contacts><buddies><buddy user-id="295098062" uri="sip:638993408@fetion.com.cn;p=2242" result="1" buddy-lists="" expose-mobile-no="0" expose-name="0" /></buddies></contacts></args>SIPP
+    EOF
+    sipc_message.gsub!("\n", "\r\n").chomp!
+    contact = Fetion::Contact.new
+    contact.id = '295098062'
+    contact.uri = 'sip:638993408@fetion.com.cn;p=2242'
+    SipcMessage.handle_contact_request(@fetion, contact).should == sipc_message
   end
 end

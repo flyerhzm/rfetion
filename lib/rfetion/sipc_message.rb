@@ -110,6 +110,11 @@ class SipcMessage
     sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :N => 'KeepAlive', :body => body)
   end
 
+  def self.handle_contact_request(fetion, contact)
+    body = %Q|<args><contacts><buddies><buddy user-id="#{contact.id}" uri="#{contact.uri}" result="1" buddy-lists="" expose-mobile-no="0" expose-name="0" /></buddies></contacts></args>|
+    sipc_create(:command => 'S', :F => fetion.sid, :I => fetion.next_call, :Q => "1 S", :N => "HandleContactRequestV4", :body => body)
+  end
+
   def self.sipc_response(http_response_body, fetion)
     return if http_response_body == Fetion::SIPP
     
