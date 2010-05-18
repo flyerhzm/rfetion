@@ -22,5 +22,15 @@ class Fetion
       contact.status = p["b"]
       contact
     end
+
+    def self.parse_request(c)
+      contact = self.new
+      contact.uri = c['uri']
+      contact.id = c['user-id']
+      contact.sid = c['sid']
+      contact.mobile_no = c['mobile-no']
+      contact.nickname = c['nickname']
+      contact
+    end
   end
 end

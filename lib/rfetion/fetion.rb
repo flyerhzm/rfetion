@@ -9,7 +9,7 @@ require 'logger'
 
 class Fetion
   attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri
-  attr_reader :user_id, :contacts, :buddy_lists, :response, :nickname, :receives
+  attr_reader :user_id, :contacts, :buddy_lists, :add_requests, :response, :nickname, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
@@ -25,6 +25,7 @@ class Fetion
     @buddies = []
     @contacts = []
     @receives = []
+    @add_requests = []
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
     @guid = Guid.new.to_s
@@ -267,13 +268,24 @@ class Fetion
   #   mobile_no
   #   sip
   def get_contact_info(options)
-    uri = options[:mobile_no] ? "tel:#{options[:mobile_no]}" : "sip:#{options[:sip]}"
+    uri = if options[:mobile_no]
+            "tel:#{options[:mobile_no]}"
+          elsif options[:sip]
+            "sip:#{options[:sip]}"
+          else
+            "uri:#{options[:uri]}"
+          end
     @logger.info "fetion get contact info of #{uri}"
     
     curl_exec(SipcMessage.get_contact_info(self, uri))
-    pulse
+    sipc_response = pulse
+    results = sipc_response.sections.first.scan(%r{<results>.*?</results>}).first
+    doc = Nokogiri::XML(results)
+    c = doc.root.xpath("/results/contact").first
+    contact = Contact.parse_request(c)
 
     @logger.info "fetion get contact info of #{uri} success"
+    contact
   end
 
   def keep_alive
@@ -287,9 +299,10 @@ class Fetion
   def pulse(expected=SipcMessage::OK)
     @logger.info "fetion pulse"
 
-    curl_exec(SIPP, next_url, expected)
+    sipc_response = curl_exec(SIPP, next_url, expected)
 
     @logger.info "fetion pulse success"
+    sipc_response
   end
 
   def logout
@@ -332,6 +345,16 @@ class Fetion
     curl_exec(SipcMessage.close_session(self))
 
     @logger.info "fetion close_session success"
+  end
+
+  def handle_contact_request(user_id, options)
+    @logger.info "fetion handle contact request"
+
+    contact = @add_requests.find {|contact| contact.id == user_id}
+    curl_exec(SipcMessage.handle_contact_request(self, contact, options))
+    pulse
+
+    @logger.info "fetion handle contact request success"
   end
 
   def parse_ssic(response)
@@ -438,6 +461,9 @@ class Fetion
           else
             @contacts << Fetion::Contact.parse(c) unless c['id'] == @user_id
           end
+        end
+        doc.root.xpath("/events/event[@type='AddBuddyApplication']/application").each do |application|
+          @add_requests << get_contact_info(:uri => application['uri'])
         end
       end
     end

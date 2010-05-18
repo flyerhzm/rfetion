@@ -393,6 +393,6 @@ L: 186
     contact = Fetion::Contact.new
     contact.id = '295098062'
     contact.uri = 'sip:638993408@fetion.com.cn;p=2242'
-    SipcMessage.handle_contact_request(@fetion, contact).should == sipc_message
+    SipcMessage.handle_contact_request(@fetion, contact, :result => "1").should == sipc_message
   end
 end

@@ -673,7 +673,7 @@ L: 207
 EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
-      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => "SIPP")
       response_body =<<-EOF
 SIP-C/4.0 200 OK
 I: 7
@@ -685,6 +685,30 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => response_body)
       @fetion.pulse
+    end
+
+    it "should handle contact request" do
+      contact = Fetion::Contact.new
+      contact.id = '295098062'
+      contact.uri = 'sip:638993408@fetion.com.cn;p=2242'
+      @fetion.instance_variable_set(:@add_requests, [contact])
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => "SIPP")
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 9
+Q: 1 S
+L: 349
+
+<results><contacts version="327533592"><buddies><buddy uri="sip:638993408@fetion.com.cn;p=2242" local-name="" buddy-lists="" online-notify="0" expose-mobile-no="0" expose-name="0" expose-basic-presence="1" accept-instant-message="1" result="1" relation-status="1" user-id="295098062" permission-values="identity=0;" /></buddies></contacts></results>BN 480867781 SIP-C/4.0
+N: PresenceV4
+I: 1
+L: 329
+Q: 6 BN
+
+<events><event type="PresenceChanged"><contacts><c id="295098062"><p v="326156919" sid="638993408" su="sip:638993408@fetion.com.cn;p=2242" m="13634102006" c="CMCC" cs="0" s="1" l="0" svc="" n="梦研" i="" p="0" sms="0.0:0:0" sp="0" sh="0"/><pr di="PCCL030308238932" b="400" d="" dt="PC" dc="17"/></c></contacts></event></events>SIPP
+EOF
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
+      @fetion.handle_contact_request('295098062', :result => "1")
     end
   end
 end
