@@ -358,17 +358,17 @@ class Fetion
     @logger.info "fetion handle contact request success"
   end
 
-  def get_pic(algorithm)
+  def get_pic_certificate(algorithm)
     @logger.info "fetion get pic"
     
     uri = URI.parse(FETION_PIC_URL.sub('%algorithm', algorithm))
     http = Net::HTTP.new(uri.host, uri.port)
     headers = {'User-Agent' => USER_AGENT}
     response = http.request_get(uri.request_uri, headers)
-    pic = parse_pic(response)
+    pic_certificate = parse_pic_certificate(response)
 
     @logger.info "fetion get pic success"
-    pic
+    pic_certificate
   end
 
   def parse_ssic(response)
@@ -400,11 +400,11 @@ class Fetion
     @logger.debug "sid: " + @sid
   end
 
-  def parse_pic(response)
+  def parse_pic_certificate(response)
     raise FetionException.new('Fetion Error: Get verification code failed.') unless Net::HTTPSuccess === response
     doc = Nokogiri::XML(response.body)
     certificate = doc.root.xpath('/results/pic-certificate').first
-    certificate['pic']
+    PicCertificate.parse(certificate)
   end
 
   def curl_exec(body='', url=next_url, expected=SipcMessage::OK)
