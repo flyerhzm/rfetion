@@ -2,6 +2,8 @@ h1. rfetion
 
 rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.
 
+I'm still developing according to the Fetion 2010 version which adds the verification code to protect bot. You should download the version before 0.5.0 which does not trigger the verification.
+
 **************************************************************************
 
 h2. Demo
