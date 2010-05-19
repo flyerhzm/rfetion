@@ -13,6 +13,7 @@ class Fetion
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
+  FETION_PIC_URL = 'http://nav.fetion.com.cn/nav/GetPicCodeV4.aspx?algorithm=%algorithm'
 
   SIPP = 'SIPP'
   USER_AGENT = "IIC2.0/PC 3.6.2020"
@@ -340,11 +341,11 @@ class Fetion
   end
 
   def close_session
-    @logger.info "fetion close_session"
+    @logger.info "fetion close session"
 
     curl_exec(SipcMessage.close_session(self))
 
-    @logger.info "fetion close_session success"
+    @logger.info "fetion close session success"
   end
 
   def handle_contact_request(user_id, options)
@@ -355,6 +356,19 @@ class Fetion
     pulse
 
     @logger.info "fetion handle contact request success"
+  end
+
+  def get_pic(algorithm)
+    @logger.info "fetion get pic"
+    
+    uri = URI.parse(FETION_PIC_URL.sub('%algorithm', algorithm))
+    http = Net::HTTP.new(uri.host, uri.port)
+    headers = {'User-Agent' => USER_AGENT}
+    response = http.request_get(uri.request_uri, headers)
+    pic = parse_pic(response)
+
+    @logger.info "fetion get pic success"
+    pic
   end
 
   def parse_ssic(response)
@@ -384,6 +398,13 @@ class Fetion
     @logger.debug "mobile_no: " + @mobile_no
     @logger.debug "user_id: " + @user_id
     @logger.debug "sid: " + @sid
+  end
+
+  def parse_pic(response)
+    raise FetionException.new('Fetion Error: Get verification code failed.') unless Net::HTTPSuccess === response
+    doc = Nokogiri::XML(response.body)
+    certificate = doc.root.xpath('/results/pic-certificate').first
+    certificate['pic']
   end
 
   def curl_exec(body='', url=next_url, expected=SipcMessage::OK)
