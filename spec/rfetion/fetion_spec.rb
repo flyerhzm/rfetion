@@ -28,6 +28,20 @@ describe Fetion do
       @fetion.ssic.should == "DhIOAADVEY68pV4EcRHsJ/GIIeltaYJsYJR2pj7b2+hCYLtgUd2j2mFaOqoqR98S3dm5pPH9t7W1yH5Cp/lVRP6VTwpLVvwxhhvj8qDz/p8rrW/Ljor6P4ZQKUZYz80JHjMt8R4AAA=="
     end
 
+    it "should login failed with wrong password" do
+      @fetion.mobile_no = '15800681509'
+      @fetion.password = 'password'
+      FakeWeb.register_uri(:get, 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=15800681509&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=79cd56b93f21298dc8ae9d26de1258e3d6ce85a7', :body => %Q|<?xml version="1.0" encoding="utf-8" ?><results status-code="401" desc="password error" />|, :status => ['401', 'password error'])
+      lambda { @fetion.login }.should raise_exception(Fetion::PasswordError)
+    end
+
+    it "should get verification code when password error max" do
+      @fetion.mobile_no = '15800681509'
+      @fetion.password = 'password'
+      FakeWeb.register_uri(:get, 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=15800681509&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=79cd56b93f21298dc8ae9d26de1258e3d6ce85a7', :body => %Q|<?xml version="1.0" encoding="utf-8" ?><results status-code="421" desc="password error max"><verification algorithm="picc-PasswordErrorMax" type="GeneralPic" text="您已连续输入错误密码，为了保障您的帐户安全，请输入图形验证码：" tips="温馨提示：建议您直接用手机编辑短信P发送到12520获取新密码。"></verification></results>|, :status => ['421'])
+      lambda { @fetion.login }.should raise_exception(Fetion::PasswordMaxError)
+    end
+
     it "should login by sid" do
       @fetion.sid = "730020377"
       @fetion.password = 'password'

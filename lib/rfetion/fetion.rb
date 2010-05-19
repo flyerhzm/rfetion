@@ -358,7 +358,8 @@ class Fetion
   end
 
   def parse_ssic(response)
-    raise Fetion::LoginException.new('Fetion Error: 帐号或密码不正确') if Net::HTTPUnauthorized === response
+    raise Fetion::PasswordError.new('Fetion Error: 帐号或密码不正确') if Net::HTTPUnauthorized === response
+    raise Fetion::PasswordMaxError.new('Fetion Error: 您已连续输入错误密码，为了保障您的帐户安全，请输入图形验证码：') if Net::HTTPClientError === response
     raise Fetion::LoginException.new('Fetion Error: Login failed.') unless Net::HTTPSuccess === response
     raise Fetion::LoginException.new('Fetion Error: No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/
 
@@ -507,6 +508,8 @@ end
 
 class FetionException < Exception; end
 class Fetion::LoginException < FetionException; end
+class Fetion::PasswordError < Fetion::LoginException; end
+class Fetion::PasswordMaxError < Fetion::LoginException; end
 class Fetion::NoNonceException < FetionException; end
 class Fetion::RegisterException < FetionException; end
 class Fetion::SendSmsException < FetionException; end
