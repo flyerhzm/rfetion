@@ -9,7 +9,7 @@ require 'logger'
 
 class Fetion
   attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri
-  attr_reader :user_id, :contacts, :buddy_lists, :add_requests, :response, :nickname, :receives
+  attr_reader :uid, :buddy_lists, :add_requests, :response, :nickname, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
@@ -22,9 +22,7 @@ class Fetion
 
   def initialize
     @call = @alive = @seq = 0
-    @buddy_lists = []
-    @buddies = []
-    @contacts = []
+    @buddy_lists = [Fetion::BuddyList.new("0", "未分组")]
     @receives = []
     @add_requests = []
     @logger = Logger.new(STDOUT)
@@ -200,7 +198,7 @@ class Fetion
   def register_second
     @logger.debug "fetion register second"
 
-    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
+    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@uid}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
     curl_exec(SipcMessage.register_second(self))
     pulse
 
@@ -348,10 +346,10 @@ class Fetion
     @logger.info "fetion close session success"
   end
 
-  def handle_contact_request(user_id, options)
+  def handle_contact_request(uid, options)
     @logger.info "fetion handle contact request"
 
-    contact = @add_requests.find {|contact| contact.id == user_id}
+    contact = @add_requests.find {|contact| contact.uid == uid}
     curl_exec(SipcMessage.handle_contact_request(self, contact, options))
     pulse
 
@@ -386,7 +384,7 @@ class Fetion
     @user_status = user['user-status']
     @uri = user['uri']
     @mobile_no = user['mobile-no']
-    @user_id = user['user-id']
+    @uid = user['user-id']
     if @uri =~ /sip:(\d+)@(.+);/
       @sid = $1
     end
@@ -396,7 +394,7 @@ class Fetion
     @logger.debug "user_status: " + @user_status
     @logger.debug "uri: " + @uri
     @logger.debug "mobile_no: " + @mobile_no
-    @logger.debug "user_id: " + @user_id
+    @logger.debug "uid: " + @uid
     @logger.debug "sid: " + @sid
   end
 
@@ -471,18 +469,22 @@ class Fetion
           @buddy_lists << Fetion::BuddyList.parse(buddy_list)
         end
         doc.root.xpath("/results/user-info/contact-list/buddies/b").each do |buddy|
-          @buddies << {:uri => buddy["u"]}
+          contact = Fetion::Contact.parse_buddy(buddy)
+          @buddy_lists.find {|buddy_list| buddy_list.bid == buddy['l']}.add_contact(contact)
         end
       end
       
       response.body.scan(%r{<events>.*?</events>}).each do |events|
         doc = Nokogiri::XML(events)
         doc.root.xpath("/events/event[@type='PresenceChanged']/contacts/c").each do |c|
-          contact = contacts.find {|contact| contact.id == c['id']}
-          if contact
-            contact.status = c.children.first['b']
-          else
-            @contacts << Fetion::Contact.parse(c) unless c['id'] == @user_id
+          unless self.uid == c['id']
+            contact = contacts.find {|contact| contact.uid == c['id']}
+            if contact
+              contact.update(c.children.first)
+            else
+              contact = Fetion::Contact.parse(c)
+              @buddy_lists.find {|buddy_list| buddy_list.bid == contact.bid}.add_contact(contact)
+            end
           end
         end
         doc.root.xpath("/events/event[@type='AddBuddyApplication']/application").each do |application|
@@ -510,7 +512,7 @@ class Fetion
   end
 
   def calc_response
-    encrypted_password = Digest::SHA1.hexdigest([@user_id.to_i].pack("V*") + [Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}")].pack("H*"))
+    encrypted_password = Digest::SHA1.hexdigest([@uid.to_i].pack("V*") + [Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}")].pack("H*"))
     rsa_result = "4A026855890197CFDF768597D07200B346F3D676411C6F87368B5C2276DCEDD2"
     str = @nonce + [encrypted_password].pack("H*") + [rsa_result].pack("H*")
     rsa_key = OpenSSL::PKey::RSA.new
@@ -524,6 +526,10 @@ class Fetion
   
   def self?(mobile_or_sid)
     mobile_or_sid == @mobile_no or mobile_or_sid == @sid
+  end
+
+  def contacts
+    buddy_lists.collect {|buddy_list| buddy_list.contacts}.flatten
   end
 end
 

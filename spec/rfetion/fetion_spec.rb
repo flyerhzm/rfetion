@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe Fetion do
   class Fetion
-    attr_accessor :mobile_no, :sid, :password, :status_code, :user_status, :user_id, :ssic, :nonce, :key, :signature, :response
+    attr_accessor :mobile_no, :sid, :password, :status_code, :user_status, :uid, :ssic, :nonce, :key, :signature, :response
   end
 
   before :each do
@@ -23,7 +23,7 @@ describe Fetion do
       @fetion.status_code.should == "200"
       @fetion.user_status.should == "101"
       @fetion.mobile_no.should == "15800681509"
-      @fetion.user_id.should == "390937727"
+      @fetion.uid.should == "390937727"
       @fetion.sid.should == "730020377"
       @fetion.ssic.should == "DhIOAADVEY68pV4EcRHsJ/GIIeltaYJsYJR2pj7b2+hCYLtgUd2j2mFaOqoqR98S3dm5pPH9t7W1yH5Cp/lVRP6VTwpLVvwxhhvj8qDz/p8rrW/Ljor6P4ZQKUZYz80JHjMt8R4AAA=="
     end
@@ -51,7 +51,7 @@ describe Fetion do
       @fetion.status_code.should == "200"
       @fetion.user_status.should == "101"
       @fetion.mobile_no.should == "15800681509"
-      @fetion.user_id.should == "390937727"
+      @fetion.uid.should == "390937727"
       @fetion.sid.should == "730020377"
       @fetion.ssic.should == "DhIOAADVEY68pV4EcRHsJ/GIIeltaYJsYJR2pj7b2+hCYLtgUd2j2mFaOqoqR98S3dm5pPH9t7W1yH5Cp/lVRP6VTwpLVvwxhhvj8qDz/p8rrW/Ljor6P4ZQKUZYz80JHjMt8R4AAA=="
     end
@@ -66,7 +66,7 @@ describe Fetion do
 
   describe "register" do
     before :each do
-      @fetion.instance_variable_set(:@user_id, "390937727")
+      @fetion.instance_variable_set(:@uid, "390937727")
       @fetion.instance_variable_set(:@password, "password")
     end
 
@@ -114,7 +114,7 @@ EOF
     describe "register second" do
       before :each do
         @fetion.mobile_no = "15800681509"
-        @fetion.user_id = "390937727"
+        @fetion.uid = "390937727"
         @fetion.response = "458F72ED91E149D28D8467772AB7AD366527B55AC1A10CD18BA1B9BD95F2E082B1594B6C9B116E0BDECC315A2ABA0F4DD20591BF305FCDCDA4CA7B6434EA7788B893E0BB26E4E02097B6707BE0BD60E704D560DDDCB539A3E6FD49B985631FCA02C44D09A6713358BF1D323BA62B5273C7096B97D6A75C6BF9708768FF0113D0"
         @fetion.instance_variable_set(:@seq, 3)
       end
@@ -141,7 +141,9 @@ EOF
         @fetion.register_second
 
         @fetion.nickname.should == "flyerhzm"
-        @fetion.buddy_lists.collect {|buddy_list| buddy_list.name}.should == ['我的好友', '好友', '同学']
+        @fetion.buddy_lists.collect {|buddy_list| buddy_list.name}.should == ['未分组', '我的好友', '好友', '同学']
+        @fetion.buddy_lists[1].contacts.collect {|contact| contact.uid}.should == ['226911221', '295098062', '579113578', '665046562', '687455743', '714355089', '732743291']
+        @fetion.buddy_lists.last.contacts.collect {|contact| contact.uid}.should == ['222516658', '227091544', '228358286', '229415466', '296436724']
       end
     end
   end
@@ -150,7 +152,25 @@ EOF
     before :each do
       @fetion.instance_variable_set(:@seq, 5)
       @fetion.instance_variable_set(:@sid, "730020377")
-      @fetion.instance_variable_set(:@user_id, "390937727")
+      @fetion.instance_variable_set(:@uid, "390937727")
+      @buddy_list0 = Fetion::BuddyList.new("0", "未分组")
+      @buddy_list1 = Fetion::BuddyList.new("1", "我的好友")
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "226911221", :uri => "sip:572512981@fetion.com.cn;p=3544", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "295098062", :uri => "sip:638993408@fetion.com.cn;p=2242", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "579113578", :uri => "sip:838271744@fetion.com.cn;p=4805", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "665046562", :uri => "sip:926157269@fetion.com.cn;p=12906", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "687455743", :uri => "sip:881033150@fetion.com.cn;p=5493", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "714355089", :uri => "sip:973921799@fetion.com.cn;p=12193", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "732743291", :uri => "sip:480867781@fetion.com.cn;p=16105", :bid => "1"))
+      @buddy_list2 = Fetion::BuddyList.new("2", "好友")
+      @buddy_list3 = Fetion::BuddyList.new("3", "同学")
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "222516658", :uri => "sip:793401629@fetion.com.cn;p=1919", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "227091544", :uri => "sip:669700695@fetion.com.cn;p=3546", :nickname => "郭庆", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "228358286", :uri => "sip:660250260@fetion.com.cn;p=3854", :nickname => "蔡智武", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "229415466", :uri => "sip:737769829@fetion.com.cn;p=4078", :nickname => "ice", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "296436724", :uri => "sip:760087520@fetion.com.cn;p=2467", :bid => "3"))
+      @buddy_lists = [@buddy_list0, @buddy_list1, @buddy_list2, @buddy_list3]
+      @fetion.instance_variable_set(:@buddy_lists, @buddy_lists)
     end
 
     it "should get all contacts" do
@@ -249,7 +269,7 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
       @fetion.get_contacts
-      @fetion.contacts.collect {|contact| contact.sid}.should == ["793401629", "737769829", "660250260", "926157269", "669700695", "760087520", "480867781", "572512981", "638993408"]
+      @fetion.contacts.collect {|contact| contact.sid}.should == ["572512981", "638993408", nil, "926157269", nil, nil, "480867781", "793401629", "669700695", "660250260", "737769829", "760087520"]
     end
 
     it "should get received msg while get contacts" do
@@ -357,7 +377,7 @@ EOF
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => "SIPP")
       @fetion.get_contacts
-      @fetion.contacts.collect {|c| c.sid}.should == ["793401629", "737769829", "660250260", "926157269", "669700695", "760087520", "480867781", "572512981", "638993408"]
+      @fetion.contacts.collect {|c| c.sid}.should == ["572512981", "638993408", nil, "926157269", nil, nil, "480867781", "793401629", "669700695", "660250260", "737769829", "760087520"]
       @fetion.receives.collect {|r| r.sip}.should == ["480867781@fetion.com.cn;p=16105"]
       @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Mon, 10 May 2010 14:26:17 GMT")]
       @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]
@@ -513,12 +533,15 @@ EOF
     before :each do
       @fetion.instance_variable_set(:@seq, 10)
       @fetion.instance_variable_set(:@sid, "730020377")
-      contact = Fetion::Contact.new
-      contact.id = '295098062'
+      contact = Fetion::Contact.new(:uid => '295098062')
       @fetion.instance_variable_set(:@contacts, [contact])
     end
 
     it "should get presence with online" do
+      buddy_list = Fetion::BuddyList.new(1, 'friends')
+      contact = Fetion::Contact.new(:uid => "295098062")
+      buddy_list.add_contact(contact)
+      @fetion.instance_variable_set(:@buddy_lists, [buddy_list])
       response_body =<<-EOF
 BN 730020377 SIP-C/4.0
 N: PresenceV4
@@ -531,7 +554,7 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
       @fetion.pulse
-      @fetion.contacts.find {|contact| contact.id == '295098062'}.status.should == "400"
+      @fetion.contacts.find {|contact| contact.uid == '295098062'}.status.should == "400"
     end
 
 
@@ -702,10 +725,10 @@ EOF
     end
 
     it "should handle contact request" do
-      contact = Fetion::Contact.new
-      contact.id = '295098062'
-      contact.uri = 'sip:638993408@fetion.com.cn;p=2242'
+      contact = Fetion::Contact.new(:uid => '295098062', :uri => 'sip:638993408@fetion.com.cn;p=2242')
       @fetion.instance_variable_set(:@add_requests, [contact])
+      buddy_list = Fetion::BuddyList.new("1", "friends")
+      @fetion.instance_variable_set(:@buddy_lists, [buddy_list])
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => "SIPP")
       response_body =<<-EOF
 SIP-C/4.0 200 OK
@@ -719,7 +742,7 @@ I: 1
 L: 329
 Q: 6 BN
 
-<events><event type="PresenceChanged"><contacts><c id="295098062"><p v="326156919" sid="638993408" su="sip:638993408@fetion.com.cn;p=2242" m="13634102006" c="CMCC" cs="0" s="1" l="0" svc="" n="梦研" i="" p="0" sms="0.0:0:0" sp="0" sh="0"/><pr di="PCCL030308238932" b="400" d="" dt="PC" dc="17"/></c></contacts></event></events>SIPP
+<events><event type="PresenceChanged"><contacts><c id="295098062"><p v="326156919" sid="638993408" su="sip:638993408@fetion.com.cn;p=2242" m="13634102006" c="CMCC" cs="0" s="1" l="1" svc="" n="梦研" i="" p="0" sms="0.0:0:0" sp="0" sh="0"/><pr di="PCCL030308238932" b="400" d="" dt="PC" dc="17"/></c></contacts></event></events>SIPP
 EOF
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => response_body)
       @fetion.handle_contact_request('295098062', :result => "1")
@@ -729,7 +752,6 @@ EOF
   describe "pic" do
     it "should get pic when password error max" do
       response_body =<<-EOF
-
 <?xml version="1.0" encoding="UTF-8"?><results><pic-certificate id="2cb24c14-d0d4-4417-a69f-640c91f745c5" pic="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" /></results>
 EOF
       FakeWeb.register_uri(:get, "http://nav.fetion.com.cn/nav/GetPicCodeV4.aspx?algorithm=picc-PasswordErrorMax", :body => response_body)

@@ -2,13 +2,13 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe SipcMessage do
   class Fetion
-    attr_accessor :mobile_no, :sid, :password, :status_code, :user_status, :user_id, :ssic, :nonce, :key, :signature, :response, :call
+    attr_accessor :mobile_no, :sid, :password, :status_code, :user_status, :uid, :ssic, :nonce, :key, :signature, :response, :call
   end
 
   before :each do
     @fetion = Fetion.new
     @fetion.sid = "730020377"
-    @fetion.user_id = "390937727"
+    @fetion.uid = "390937727"
     @fetion.mobile_no = "15800681509"
     @fetion.uri = "730020377@fetion.com.cn;p=6907"
     @fetion.response = "62E57A276EB9B7AAC233B8983A39941870CE74E3B2CD6480B5CA9DCF37C57DECEA250F261543CB4424EE9E72354C9F33C805EB9839BF96501D0261614E69BDF0DBDF484047750B3113DF8850FEF39428ADC17FE86E8800ED5A77AA7F6630F21AE8A24E6ECC2F003BF3B93E35051A7778D238F86D21581BC829679EBEAD36390F"
@@ -391,7 +391,7 @@ L: 186
     EOF
     sipc_message.gsub!("\n", "\r\n").chomp!
     contact = Fetion::Contact.new
-    contact.id = '295098062'
+    contact.uid = '295098062'
     contact.uri = 'sip:638993408@fetion.com.cn;p=2242'
     SipcMessage.handle_contact_request(@fetion, contact, :result => "1").should == sipc_message
   end

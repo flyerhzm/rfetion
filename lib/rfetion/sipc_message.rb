@@ -6,7 +6,7 @@ class SipcMessage
   end
 
   def self.register_second(fetion)
-    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{fetion.mobile_no}" user-id="#{fetion.user_id}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
+    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{fetion.mobile_no}" user-id="#{fetion.uid}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
     sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :A => %Q|Digest response="#{fetion.response}",algorithm="SHA1-sess-v4"|, :AK => 'ak-value', :body => body)
   end
 
@@ -111,7 +111,7 @@ class SipcMessage
   end
 
   def self.handle_contact_request(fetion, contact, options)
-    body = %Q|<args><contacts><buddies><buddy user-id="#{contact.id}" uri="#{contact.uri}" result="#{options[:result]}" buddy-lists="" expose-mobile-no="0" expose-name="0" /></buddies></contacts></args>|
+    body = %Q|<args><contacts><buddies><buddy user-id="#{contact.uid}" uri="#{contact.uri}" result="#{options[:result]}" buddy-lists="" expose-mobile-no="0" expose-name="0" /></buddies></contacts></args>|
     sipc_create(:command => 'S', :F => fetion.sid, :I => fetion.next_call, :Q => "1 S", :N => "HandleContactRequestV4", :body => body)
   end
 
