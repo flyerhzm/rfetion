@@ -1,7 +1,7 @@
 #coding: utf-8
 class Fetion
   class Contact
-    attr_accessor :uid, :sid, :bid, :uri, :mobile_no, :nickname, :impresa, :nickname, :status
+    attr_accessor :uid, :sid, :bid, :uri, :mobile_no, :nickname, :impresa, :status
 
     STATUS = {
       "400" => "在线",
@@ -9,21 +9,6 @@ class Fetion
       "600" => "繁忙",
       "0" => "脱机"
     }
-
-    def initialize(options={})
-      options.each do |key, value|
-        send("#{key}=", value)
-      end
-    end
-
-    def update(p)
-      self.sid = p["sid"]
-      self.uri = p["su"]
-      self.mobile_no = p["m"]
-      self.nickname = p["n"]
-      self.impresa = p["i"]
-      self.status = p["b"]
-    end
 
     def self.parse_buddy(b)
       self.new(:uid => b['i'], :uri => b['u'], :nickname => b['n'], :bid => b['l'].empty? ? "0" : b['l'])
@@ -36,6 +21,33 @@ class Fetion
 
     def self.parse_request(c)
       self.new(:uri => c['uri'], :uid => c['user-id'], :sid => c['sid'], :mobile_no => c['mobile-no'], :nickname => c['nickname'])
+    end
+
+    def initialize(options={})
+      options.each do |key, value|
+        send("#{key}=", value)
+      end
+    end
+
+    def update(p)
+      self.sid = p["sid"] if p["sid"] and !p["sid"].empty?
+      self.uri = p["su"] if p["su"] and !p["su"].empty?
+      self.mobile_no = p["m"] if p["m"] and !p["m"].empty?
+      self.nickname = p["n"] if p["n"] and !p["n"].empty?
+      self.impresa = p["i"] if p["i"] and !p["i"].empty?
+      self.status = p["b"] if p["b"] and !p["b"].empty?
+    end
+
+    def display
+      if self.impresa and !self.impresa.empty?
+        "#{self.nickname}(#{self.impresa})"
+      elsif self.nickname and !self.nickname.empty?
+        self.nickname
+      else
+        if self.uri =~ /^(tel|sip):(\d+)/
+          $2
+        end
+      end
     end
   end
 end

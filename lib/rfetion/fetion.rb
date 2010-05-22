@@ -23,6 +23,7 @@ class Fetion
   def initialize
     @call = @alive = @seq = 0
     @buddy_lists = [Fetion::BuddyList.new("0", "未分组")]
+    @contacts = []
     @receives = []
     @add_requests = []
     @logger = Logger.new(STDOUT)
@@ -483,7 +484,11 @@ class Fetion
               contact.update(c.children.first)
             else
               contact = Fetion::Contact.parse(c)
-              @buddy_lists.find {|buddy_list| buddy_list.bid == contact.bid}.add_contact(contact)
+              if @buddy_lists.size > 1
+                @buddy_lists.find {|buddy_list| buddy_list.bid == contact.bid}.add_contact(contact)
+              else
+                @contacts << contact
+              end
             end
           end
         end
@@ -529,7 +534,11 @@ class Fetion
   end
 
   def contacts
-    buddy_lists.collect {|buddy_list| buddy_list.contacts}.flatten
+    if @buddy_lists.size > 1
+      @buddy_lists.collect {|buddy_list| buddy_list.contacts}.flatten
+    else
+      @contacts
+    end
   end
 end
 
