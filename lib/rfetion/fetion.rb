@@ -442,8 +442,7 @@ class Fetion
       create_session(sipc_response) if sipc_response.contain?('I')
       session_connected(sipc_response) if sipc_response.contain?('O')
       if sipc_response.contain?('M')
-        receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?BN}m)
-        receive_messages = response.body.scan(%r{M #{@sid} SIP-C/4.0.*?SIPP\r?\n?$}m) if receive_messages.empty?
+        receive_messages = sipc_response.sections.select {|section| section =~ /^M/}
         receive_messages.each do |message_response|
           message_header, message_content = message_response.split(/\r\n\r\n/)
           sip = sent_at = length = nil

@@ -699,6 +699,40 @@ EOF
       @fetion.receives.collect {|r| r.text}.should == ["testtesttest"]
     end
 
+    it "should get multiple receive msgs" do
+      response_body =<<-EOF
+M 730020377 SIP-C/4.0
+I: -11
+Q: 4 M
+F: sip:638993408@fetion.com.cn;p=2242
+C: text/html-fragment
+K: SaveHistory
+L: 8
+D: Sat, 22 May 2010 15:17:26 GMT
+XI: b1344eca984c418ba4b72a6fed5011e5
+
+testtestM 730020377 SIP-C/4.0
+I: -11
+Q: 5 M
+F: sip:638993408@fetion.com.cn;p=2242
+C: text/html-fragment
+K: SaveHistory
+L: 4
+D: Sat, 22 May 2010 15:17:26 GMT
+XI: 9b9eba984eb4468babf70f5dcceca39d
+
+testSIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=12", :body => "SIPP")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=13", :body => "SIPP")
+      @fetion.pulse
+      @fetion.receives.collect {|r| r.sip}.should == ["638993408@fetion.com.cn;p=2242", "638993408@fetion.com.cn;p=2242"]
+      @fetion.receives.collect {|r| r.sent_at}.should == [Time.parse("Sat, 22 May 2010 15:17:26 GMT"), Time.parse("Sat, 22 May 2010 15:17:26 GMT")]
+      @fetion.receives.collect {|r| r.text}.should == ["testtest", "test"]
+    end
+
     it "should get add buddy message" do
       response_body =<<-EOF
 BN 480867781 SIP-C/4.0
