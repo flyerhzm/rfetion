@@ -15,5 +15,13 @@ class Fetion
     def add_contact(contact)
       @contacts << contact
     end
+
+    def online_contacts_count
+      @contacts.select {|contact| contact.status == "400"}.size
+    end
+
+    def total_contacts_count
+      @contacts.size
+    end
   end
 end
