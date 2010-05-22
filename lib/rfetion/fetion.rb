@@ -9,7 +9,7 @@ require 'logger'
 
 class Fetion
   attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri
-  attr_reader :uid, :buddy_lists, :add_requests, :response, :nickname, :receives
+  attr_reader :uid, :buddy_lists, :add_requests, :response, :nickname, :impresa, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
@@ -463,7 +463,7 @@ class Fetion
         doc = Nokogiri::XML(results)
         doc.root.xpath("/results/user-info/personal").each do |personal_element|
           @nickname = personal_element['nickname']
-          @logger.debug "nickname: #@nickname"
+          @impresa = personal_element['impresa']
         end
         doc.root.xpath("/results/user-info/contact-list/buddy-lists/buddy-list").each do |buddy_list|
           @buddy_lists << Fetion::BuddyList.parse(buddy_list)

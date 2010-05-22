@@ -141,6 +141,7 @@ EOF
         @fetion.register_second
 
         @fetion.nickname.should == "flyerhzm"
+        @fetion.impresa.should == "http://www.fetionrobot.com"
         @fetion.buddy_lists.collect {|buddy_list| buddy_list.name}.should == ['未分组', '我的好友', '好友', '同学']
         @fetion.buddy_lists[1].contacts.collect {|contact| contact.uid}.should == ['226911221', '295098062', '579113578', '665046562', '687455743', '714355089', '732743291']
         @fetion.buddy_lists.last.contacts.collect {|contact| contact.uid}.should == ['222516658', '227091544', '228358286', '229415466', '296436724']
