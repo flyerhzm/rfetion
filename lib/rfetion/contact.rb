@@ -26,7 +26,7 @@ class Fetion
     end
 
     def self.parse_buddy(b)
-      self.new(:uid => b['i'], :uri => b['u'], :nickname => b['n'])
+      self.new(:uid => b['i'], :uri => b['u'], :nickname => b['n'], :bid => b['l'].empty? ? "0" : b['l'])
     end
 
     def self.parse(c)

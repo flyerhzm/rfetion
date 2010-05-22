@@ -470,7 +470,7 @@ class Fetion
         end
         doc.root.xpath("/results/user-info/contact-list/buddies/b").each do |buddy|
           contact = Fetion::Contact.parse_buddy(buddy)
-          @buddy_lists.find {|buddy_list| buddy_list.bid == buddy['l']}.add_contact(contact)
+          @buddy_lists.find {|buddy_list| buddy_list.bid == contact.bid}.add_contact(contact)
         end
       end
       
