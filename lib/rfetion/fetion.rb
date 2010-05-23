@@ -291,7 +291,7 @@ class Fetion
   def keep_alive
     @logger.info "fetion keep alive"
     
-    pulse
+    curl_exec(SipcMessage.keep_alive(self))
 
     @logger.info "fetion keep alive success"
   end
