@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rfetion}
-  s.version = "0.5.4"
+  s.version = "0.5.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Richard Huang"]
-  s.date = %q{2010-05-22}
+  s.date = %q{2010-05-23}
   s.description = %q{rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.}
   s.email = %q{flyerhzm@gmail.com}
   s.executables = ["rfetion", "rfetion"]
@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
      "lib/rfetion/pic_certificate.rb",
      "lib/rfetion/sipc_message.rb",
      "rfetion.gemspec",
+     "spec/rfetion/buddy_list_spec.rb",
      "spec/rfetion/fetion_spec.rb",
      "spec/rfetion/sipc_message_spec.rb",
      "spec/spec.opts",
@@ -41,7 +42,8 @@ Gem::Specification.new do |s|
   s.rubygems_version = %q{1.3.6}
   s.summary = %q{rfetion is a ruby gem for China Mobile fetion service that you can send SMS free.}
   s.test_files = [
-    "spec/rfetion/fetion_spec.rb",
+    "spec/rfetion/buddy_list_spec.rb",
+     "spec/rfetion/fetion_spec.rb",
      "spec/rfetion/sipc_message_spec.rb",
      "spec/spec_helper.rb"
   ]
