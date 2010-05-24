@@ -9,6 +9,10 @@ class Fetion
       "600" => "繁忙",
       "0" => "脱机"
     }
+    
+    def to_json
+      {:uid => @uid, :sid => @sid, :bid => @bid, :uri => @uri, :mobile_no => @mobile_no, :nickname => @nickname, :impresa => @impresa, :status => @status}.to_json
+    end
 
     def self.parse_buddy(b)
       self.new(:uid => b['i'], :uri => b['u'], :nickname => b['n'], :bid => b['l'].empty? ? "0" : b['l'])

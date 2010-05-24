@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe Fetion do
   class Fetion
-    attr_accessor :mobile_no, :sid, :password, :status_code, :user_status, :uid, :ssic, :nonce, :key, :signature, :response
+    attr_accessor :mobile_no, :sid, :password, :status_code, :user_status, :uid, :nickname, :impresa, :ssic, :nonce, :key, :signature, :response
   end
 
   before :each do
@@ -11,6 +11,47 @@ describe Fetion do
 
   after :each do
     FakeWeb.clean_registry
+  end
+  
+  describe "to_json" do
+    before :each do
+      @fetion.mobile_no = '15800681509'
+      @fetion.sid = "730020377"
+      @fetion.password = "password"
+      @fetion.uid = "390937727"
+      @fetion.status_code = "200"
+      @fetion.user_status = "101"
+      @fetion.nickname = "flyerhzm"
+      @fetion.impresa = "http://www.fetionrobot.com"
+      @buddy_list0 = Fetion::BuddyList.new("0", "未分组")
+      @buddy_list1 = Fetion::BuddyList.new("1", "我的好友")
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "226911221", :uri => "sip:572512981@fetion.com.cn;p=3544", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "295098062", :uri => "sip:638993408@fetion.com.cn;p=2242", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "579113578", :uri => "sip:838271744@fetion.com.cn;p=4805", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "665046562", :uri => "sip:926157269@fetion.com.cn;p=12906", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "687455743", :uri => "sip:881033150@fetion.com.cn;p=5493", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "714355089", :uri => "sip:973921799@fetion.com.cn;p=12193", :bid => "1"))
+      @buddy_list1.add_contact(Fetion::Contact.new(:uid => "732743291", :uri => "sip:480867781@fetion.com.cn;p=16105", :bid => "1"))
+      @buddy_list2 = Fetion::BuddyList.new("2", "好友")
+      @buddy_list3 = Fetion::BuddyList.new("3", "同学")
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "222516658", :uri => "sip:793401629@fetion.com.cn;p=1919", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "227091544", :uri => "sip:669700695@fetion.com.cn;p=3546", :nickname => "郭庆", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "228358286", :uri => "sip:660250260@fetion.com.cn;p=3854", :nickname => "蔡智武", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "229415466", :uri => "sip:737769829@fetion.com.cn;p=4078", :nickname => "ice", :bid => "3"))
+      @buddy_list3.add_contact(Fetion::Contact.new(:uid => "296436724", :uri => "sip:760087520@fetion.com.cn;p=2467", :bid => "3"))
+      @buddy_lists = [@buddy_list0, @buddy_list1, @buddy_list2, @buddy_list3]
+      @fetion.instance_variable_set(:@buddy_lists, @buddy_lists)
+    end
+
+    it "should get all user attributes" do
+      fetion_json = @fetion.to_json
+      fetion_json.should be_include %Q|"mobile_no":"15800681509"|
+      fetion_json.should be_include %Q|"sid":"730020377"|
+      fetion_json.should be_include %Q|"uid":"390937727"|
+      fetion_json.should be_include %Q|"status_code":"200"|
+      fetion_json.should be_include %Q|"nickname":"flyerhzm"|
+      fetion_json.should be_include %Q|"impresa":"http://www.fetionrobot.com"|
+    end
   end
 
   describe "login" do

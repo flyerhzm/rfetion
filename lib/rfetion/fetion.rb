@@ -6,6 +6,7 @@ require 'nokogiri'
 require 'digest/sha1'
 require 'openssl'
 require 'logger'
+require 'json'
 
 class Fetion
   attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri
@@ -29,6 +30,10 @@ class Fetion
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::INFO
     @guid = Guid.new.to_s
+  end
+  
+  def to_json
+    {:mobile_no => @mobile_no, :sid => @sid, :uid => @uid, :uri => @uri, :status_code => @status_code, :buddy_lists => @buddy_lists, :receives => @receives, :add_requests => @add_requests, :nickname => @nickname, :impresa => @impresa, :ssic => @ssic, :guid => @guid, :call => @call, :seq => @seq, :alive => @alive}.to_json
   end
   
   def logger_level=(level)
@@ -74,7 +79,7 @@ class Fetion
         receivers = Array(receivers)
         receivers.collect! {|receiver| receiver.to_s}
         get_contacts
-        contacts.each do |contact|
+        contacts.flatten.each do |contact|
           if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
             send_sms(contact.uri, content)
           end
@@ -101,7 +106,7 @@ class Fetion
         receivers = Array(receivers)
         receivers.collect! {|receiver| receiver.to_s}
         get_contacts
-        contacts.each do |contact|
+        contacts.flatten.each do |contact|
           if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
             send_msg(contact.uri, content)
           end
@@ -130,7 +135,7 @@ class Fetion
       if receivers
         receivers = Array(receivers)
         receivers.collect! {|receiver| receiver.to_s}
-        new_receivers = contacts.collect do |contact|
+        new_receivers = contacts.flatten.collect do |contact|
           if receivers.include? contact.mobile_no.to_s or receivers.any? { |receiver| contact.uri.index(receiver) }
             contact.uri
           end
