@@ -32,8 +32,8 @@ class Fetion
     @guid = Guid.new.to_s
   end
   
-  def to_json
-    {:mobile_no => @mobile_no, :sid => @sid, :uid => @uid, :uri => @uri, :status_code => @status_code, :buddy_lists => @buddy_lists, :receives => @receives, :add_requests => @add_requests, :nickname => @nickname, :impresa => @impresa, :ssic => @ssic, :guid => @guid, :call => @call, :seq => @seq, :alive => @alive}.to_json
+  def to_json(*args)
+    {:mobile_no => @mobile_no, :sid => @sid, :uid => @uid, :uri => @uri, :status_code => @status_code, :buddy_lists => @buddy_lists, :receives => @receives, :add_requests => @add_requests, :nickname => @nickname, :impresa => @impresa, :ssic => @ssic, :guid => @guid, :call => @call, :seq => @seq, :alive => @alive}.to_json(*args)
   end
   
   def logger_level=(level)

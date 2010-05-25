@@ -8,8 +8,8 @@ class Fetion
       @contacts = []
     end
     
-    def to_json
-      {:bid => @bid, :name => @name, :contacts => @contacts}.to_json
+    def to_json(*args)
+      {:bid => @bid, :name => @name, :contacts => @contacts}.to_json(*args)
     end
     
     def self.parse(buddy_list)
