@@ -11,7 +11,7 @@ class Fetion
     }
     
     def to_json(*args)
-      {:uid => @uid, :sid => @sid, :bid => @bid, :uri => @uri, :mobile_no => @mobile_no, :nickname => @nickname, :impresa => @impresa, :status => @status}.to_json(*args)
+      {:uid => @uid, :sid => @sid, :bid => @bid, :uri => @uri, :mobile_no => @mobile_no, :nickname => @nickname, :impresa => @impresa, :status => @status, :display => display}.to_json(*args)
     end
 
     def self.parse_buddy(b)
