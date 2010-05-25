@@ -9,7 +9,7 @@ class Fetion
     end
     
     def to_json(*args)
-      {:bid => @bid, :name => @name, :contacts => @contacts}.to_json(*args)
+      {:bid => @bid, :name => @name, :contacts => @contacts, :total_contacts => total_contacts_count, :online_contacts => online_contacts_count}.to_json(*args)
     end
     
     def self.parse(buddy_list)
