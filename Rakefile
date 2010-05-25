@@ -29,8 +29,9 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.homepage = 'http://github.com/flyerhzm/rfetion'
   gemspec.authors = ['Richard Huang']
   gemspec.files.exclude '.gitignore'
-  gemspec.add_dependency 'guid', '>= 0.1.1'
+  gemspec.add_dependency 'guid'
   gemspec.add_dependency 'nokogiri'
+  gemspec.add_dependency 'json'
   gemspec.executables << 'rfetion'
 end
 Jeweler::GemcutterTasks.new
