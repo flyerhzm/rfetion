@@ -28,6 +28,7 @@ class Fetion
     end
 
     def initialize(options={})
+      @status = "0"
       options.each do |key, value|
         send("#{key}=", value)
       end
