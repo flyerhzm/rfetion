@@ -33,13 +33,13 @@ class Fetion
       end
     end
 
-    def update(p)
+    def update(p, pr)
       self.sid = p["sid"] if p["sid"] and !p["sid"].empty?
       self.uri = p["su"] if p["su"] and !p["su"].empty?
       self.mobile_no = p["m"] if p["m"] and !p["m"].empty?
       self.nickname = p["n"] if p["n"] and !p["n"].empty?
       self.impresa = p["i"] if p["i"] and !p["i"].empty?
-      self.status = p["b"] if p["b"] and !p["b"].empty?
+      self.status = pr["b"] if pr["b"] and !pr["b"].empty?
     end
 
     def display

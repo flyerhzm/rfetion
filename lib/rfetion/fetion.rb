@@ -486,7 +486,7 @@ class Fetion
           unless self.uid == c['id']
             contact = contacts.find {|contact| contact.uid == c['id']}
             if contact
-              contact.update(c.children.first)
+              contact.update(c.children.first, c.children.last)
             else
               contact = Fetion::Contact.parse(c)
               if @buddy_lists.size > 1

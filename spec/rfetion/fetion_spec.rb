@@ -312,6 +312,7 @@ EOF
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=10", :body => response_body)
       @fetion.get_contacts
       @fetion.contacts.collect {|contact| contact.sid}.should == ["572512981", "638993408", nil, "926157269", nil, nil, "480867781", "793401629", "669700695", "660250260", "737769829", "760087520"]
+      @fetion.contacts.collect {|contact| contact.status}.should == ["0", "0", nil, "0", nil, nil, "0", "0", "0", "0", "400", "0"]
     end
 
     it "should get received msg while get contacts" do
