@@ -377,10 +377,10 @@ class Fetion
   end
 
   def parse_ssic(response)
-    raise Fetion::PasswordError.new('Fetion Error: 帐号或密码不正确') if Net::HTTPUnauthorized === response
-    raise Fetion::PasswordMaxError.new('Fetion Error: 您已连续输入错误密码，为了保障您的帐户安全，请输入图形验证码：') if Net::HTTPClientError === response
-    raise Fetion::LoginException.new('Fetion Error: Login failed.') unless Net::HTTPSuccess === response
-    raise Fetion::LoginException.new('Fetion Error: No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/
+    raise Fetion::PasswordError.new('帐号或密码不正确') if Net::HTTPUnauthorized === response
+    raise Fetion::PasswordMaxError.new('您已连续输入错误密码，为了保障您的帐户安全，请输入图形验证码：') if Net::HTTPClientError === response
+    raise Fetion::LoginException.new('Login failed.') unless Net::HTTPSuccess === response
+    raise Fetion::LoginException.new('No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/
 
     @ssic = $1
     @logger.debug response.body
@@ -406,7 +406,7 @@ class Fetion
   end
 
   def parse_pic_certificate(response)
-    raise FetionException.new('Fetion Error: Get verification code failed.') unless Net::HTTPSuccess === response
+    raise FetionException.new('Get verification code failed.') unless Net::HTTPSuccess === response
     doc = Nokogiri::XML(response.body)
     certificate = doc.root.xpath('/results/pic-certificate').first
     PicCertificate.parse(certificate)
@@ -434,7 +434,7 @@ class Fetion
     
       if sipc_response.first_line =~ /401/
         # unauthorized, get nonce, key and signature
-        raise Fetion::NoNonceException.new("Fetion Error: No nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
+        raise Fetion::NoNonceException.new("No nonce found") unless response.body =~ /nonce="(.*?)",key="(.*?)",signature="(.*?)"/
         @nonce = $1
         @key = $2
         @signature = $3
