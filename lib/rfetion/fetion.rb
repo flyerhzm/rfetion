@@ -5,12 +5,14 @@ require 'net/http'
 require 'net/https'
 require 'nokogiri'
 require 'digest/sha1'
+require 'digest/md5'
+require 'macaddr'
 require 'openssl'
 require 'logger'
 require 'json'
 
 class Fetion
-  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri, :pid, :pic, :algorithm
+  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri, :pid, :pic, :algorithm, :machine_code
   attr_reader :uid, :buddy_lists, :add_requests, :response, :nickname, :impresa, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
@@ -533,6 +535,10 @@ class Fetion
     rsa_key.n = modulus
 
     rsa_key.public_encrypt(str).unpack("H*").first.upcase
+  end
+
+  def machine_code
+    @machine_code ||= Digest::MD5.hexdigest(Mac.addr)
   end
   
   def self?(mobile_or_sid)

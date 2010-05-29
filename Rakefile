@@ -32,6 +32,7 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.add_dependency 'guid'
   gemspec.add_dependency 'nokogiri'
   gemspec.add_dependency 'json'
+  gemspec.add_dependency 'macaddr'
   gemspec.executables << 'rfetion'
 end
 Jeweler::GemcutterTasks.new

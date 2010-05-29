@@ -48,6 +48,7 @@ L: 447
 <args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="15800681509" user-id="390937727"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>SIPP
 EOF
     sipc_message.gsub!("\n", "\r\n").chomp!
+    @fetion.machine_code = "B04B5DA2F5F1B8D01A76C0EBC841414C"
     SipcMessage.register_second(@fetion).should == sipc_message
   end
 
