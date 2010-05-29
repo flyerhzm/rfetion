@@ -207,7 +207,6 @@ class Fetion
   def register_second
     @logger.debug "fetion register second"
 
-    body = %Q|<args><device machine-code="B04B5DA2F5F1B8D01A76C0EBC841414C" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{@mobile_no}" user-id="#{@uid}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
     curl_exec(SipcMessage.register_second(self))
     pulse
 
