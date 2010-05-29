@@ -10,7 +10,7 @@ require 'logger'
 require 'json'
 
 class Fetion
-  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri
+  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri, :pid, :pic
   attr_reader :uid, :buddy_lists, :add_requests, :response, :nickname, :impresa, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
@@ -370,7 +370,7 @@ class Fetion
     http = Net::HTTP.new(uri.host, uri.port)
     headers = {'User-Agent' => USER_AGENT}
     response = http.request_get(uri.request_uri, headers)
-    pic_certificate = parse_pic_certificate(response)
+    pic_certificate = parse_pic_certificate(response, algorithm)
 
     @logger.info "fetion get pic success"
     pic_certificate
@@ -405,11 +405,11 @@ class Fetion
     @logger.debug "sid: " + @sid
   end
 
-  def parse_pic_certificate(response)
+  def parse_pic_certificate(response, algorithm)
     raise FetionException.new('Get verification code failed.') unless Net::HTTPSuccess === response
     doc = Nokogiri::XML(response.body)
     certificate = doc.root.xpath('/results/pic-certificate').first
-    PicCertificate.parse(certificate)
+    PicCertificate.parse(certificate, algorithm)
   end
 
   def curl_exec(body='', url=next_url, expected=SipcMessage::OK)

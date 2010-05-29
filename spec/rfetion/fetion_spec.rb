@@ -833,9 +833,10 @@ EOF
 EOF
       FakeWeb.register_uri(:get, "http://nav.fetion.com.cn/nav/GetPicCodeV4.aspx?algorithm=picc-PasswordErrorMax", :body => response_body)
       actual_pic = @fetion.get_pic_certificate("picc-PasswordErrorMax")
-      expected_pic = PicCertificate.parse(Nokogiri::XML(response_body).root.xpath('/results/pic-certificate').first)
+      expected_pic = PicCertificate.parse(Nokogiri::XML(response_body).root.xpath('/results/pic-certificate').first, 'picc-PasswordErrorMax')
       actual_pic.pid.should == expected_pic.pid
       actual_pic.pic.should == expected_pic.pic
+      actual_pic.algorithm.should == expected_pic.algorithm
     end
   end
 end
