@@ -10,7 +10,7 @@ require 'logger'
 require 'json'
 
 class Fetion
-  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri, :pid, :pic
+  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri, :pid, :pic, :algorithm
   attr_reader :uid, :buddy_lists, :add_requests, :response, :nickname, :impresa, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
@@ -170,7 +170,9 @@ class Fetion
     else
       url = FETION_LOGIN_URL.sub('%sid%', @sid).sub('mobileno=%mobileno%', '')
     end
-    uri = URI.parse(url.sub('%digest%', Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}")))
+    url.sub!('%digest%', Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}"))
+    url += "&pid=#@pid&pic=#@pic&algorithm=#@algorithm" if @pic
+    uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
