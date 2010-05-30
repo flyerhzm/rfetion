@@ -33,6 +33,7 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.add_dependency 'nokogiri'
   gemspec.add_dependency 'json', '=1.2.3'
   gemspec.add_dependency 'macaddr'
+  gemspec.add_dependency 'ruby-aes-optimized
   gemspec.executables << 'rfetion'
 end
 Jeweler::GemcutterTasks.new
