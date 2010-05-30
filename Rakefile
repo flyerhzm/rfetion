@@ -31,7 +31,7 @@ Jeweler::Tasks.new do |gemspec|
   gemspec.files.exclude '.gitignore'
   gemspec.add_dependency 'guid'
   gemspec.add_dependency 'nokogiri'
-  gemspec.add_dependency 'json'
+  gemspec.add_dependency 'json', '=1.2.3'
   gemspec.add_dependency 'macaddr'
   gemspec.executables << 'rfetion'
 end

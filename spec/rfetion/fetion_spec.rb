@@ -1,10 +1,6 @@
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe Fetion do
-  class Fetion
-    attr_accessor :mobile_no, :sid, :password, :status_code, :user_status, :uid, :nickname, :impresa, :ssic, :nonce, :key, :signature, :response
-  end
-
   before :each do
     @fetion = Fetion.new
   end
@@ -19,10 +15,10 @@ describe Fetion do
       @fetion.sid = "730020377"
       @fetion.password = "password"
       @fetion.uid = "390937727"
-      @fetion.status_code = "200"
-      @fetion.user_status = "101"
-      @fetion.nickname = "flyerhzm"
-      @fetion.impresa = "http://www.fetionrobot.com"
+      @fetion.instance_variable_set(:@status_code, "200")
+      @fetion.instance_variable_set(:@user_status, "101")
+      @fetion.instance_variable_set(:@nickname, "flyerhzm")
+      @fetion.instance_variable_set(:@impresa, "http://www.fetionrobot.com")
       @buddy_list0 = Fetion::BuddyList.new("0", "未分组")
       @buddy_list1 = Fetion::BuddyList.new("1", "我的好友")
       @buddy_list1.add_contact(Fetion::Contact.new(:uid => "226911221", :uri => "sip:572512981@fetion.com.cn;p=3544", :bid => "1"))
@@ -128,9 +124,9 @@ EOF
         FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=3", :body => response_body)
         @fetion.register_first
 
-        @fetion.nonce.should == "1104E253661D71141DFE3FB020143E5A"
-        @fetion.key.should == "A355B99E9EA38B7306331739A8EC57586FD4E8EC6C6D295C5EED3B6C3A84CB79889E6BED455ACBEDF68270C3FB23C9E54F0626118A09F06845E79248B4F3164E623F84722D5F8B2DFA75AD9454B7E169FB23D5F626C136CBABC6C2D910FDF56917FAFD73990013332CD87795C04799B5E75E2E6BC756D473FC39BD70BEC64D0D010001"
-        @fetion.signature.should == "8039306257522D5DA4D5BCD0D6B04730A35E1225E9A5C37FD13804B8DAB40F356EA159A6FB2812C74CB5BB33D8764BF77EB10057E177CD2BD83DBBFD36FD30E652BA963B687DABC2E9FD994FADED19286D12C70065CA255528CBAE5D9B4CC087717ED32631FAFB9A2666C2A7356226A27C48E85C3E3580EB7671EA035FE320E0"
+        @fetion.instance_variable_get(:@nonce).should == "1104E253661D71141DFE3FB020143E5A"
+        @fetion.instance_variable_get(:@key).should == "A355B99E9EA38B7306331739A8EC57586FD4E8EC6C6D295C5EED3B6C3A84CB79889E6BED455ACBEDF68270C3FB23C9E54F0626118A09F06845E79248B4F3164E623F84722D5F8B2DFA75AD9454B7E169FB23D5F626C136CBABC6C2D910FDF56917FAFD73990013332CD87795C04799B5E75E2E6BC756D473FC39BD70BEC64D0D010001"
+        @fetion.instance_variable_get(:@signature).should == "8039306257522D5DA4D5BCD0D6B04730A35E1225E9A5C37FD13804B8DAB40F356EA159A6FB2812C74CB5BB33D8764BF77EB10057E177CD2BD83DBBFD36FD30E652BA963B687DABC2E9FD994FADED19286D12C70065CA255528CBAE5D9B4CC087717ED32631FAFB9A2666C2A7356226A27C48E85C3E3580EB7671EA035FE320E0"
         @fetion.response.size.should == 256
       end
 
@@ -186,6 +182,22 @@ EOF
         @fetion.buddy_lists.collect {|buddy_list| buddy_list.name}.should == ['未分组', '我的好友', '好友', '同学']
         @fetion.buddy_lists[1].contacts.collect {|contact| contact.uid}.should == ['226911221', '295098062', '579113578', '665046562', '687455743', '714355089', '732743291']
         @fetion.buddy_lists.last.contacts.collect {|contact| contact.uid}.should == ['222516658', '227091544', '228358286', '229415466', '296436724']
+      end
+
+      it "should get 421 extension required" do
+        FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=4", :body => "SIPP")
+        response_body =<<EOF
+SIP-C/4.0 421 Extension Required
+I: 1
+Q: 2 R
+W: Verify algorithm="picc-ChangeMachine",type="GeneralPic"
+L: 191
+
+<results><reason text="飞信发现您本次变更了登录地点。为保证您的帐号安全，需要您输入验证码，这可以防止恶意程序的自动登录。" tips=""/></results>SIPP
+EOF
+        response_body.gsub!("\n", "\r\n")
+        FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=5", :body => response_body)
+        lambda { @fetion.register_second }.should raise_exception(Fetion::ChangeMachineError)
       end
     end
   end

@@ -12,8 +12,8 @@ require 'logger'
 require 'json'
 
 class Fetion
-  attr_accessor :mobile_no, :sid, :password, :call, :seq, :alive, :ssic, :guid, :uri, :pid, :pic, :algorithm, :machine_code
-  attr_reader :uid, :buddy_lists, :add_requests, :response, :nickname, :impresa, :receives
+  attr_accessor :mobile_no, :sid, :uid, :password, :call, :seq, :alive, :response, :ssic, :guid, :uri, :pid, :pic, :algorithm, :machine_code
+  attr_reader :status_code, :user_status, :buddy_lists, :add_requests, :nickname, :impresa, :receives
 
   FETION_URL = 'http://221.176.31.39/ht/sd.aspx'
   FETION_LOGIN_URL = 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=%mobileno%sid=%sid%&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=%digest%'
@@ -209,6 +209,7 @@ class Fetion
   def register_second
     @logger.debug "fetion register second"
 
+    #url = @pic ? "#{next_url}&pid=#@pid&pic=#@pic&algorithm=#@algorithm" : next_url
     curl_exec(SipcMessage.register_second(self))
     pulse
 
@@ -433,6 +434,7 @@ class Fetion
     sipc_response = SipcMessage.sipc_response(response.body, self)
     
     if sipc_response
+      raise Fetion::ChangeMachineError.new('飞信发现您本次变更了登录地点。为保证您的帐号安全，需要您输入验证码，这可以防止恶意程序的自动登录。') if sipc_response.first_line =~ /421/
       raise Fetion::SipcException.new(sipc_response, "request_url: #{url}, request_body: #{body}, sipc_response: #{sipc_response}") unless sipc_response.class == expected
     
       if sipc_response.first_line =~ /401/
@@ -558,6 +560,7 @@ class FetionException < Exception; end
 class Fetion::LoginException < FetionException; end
 class Fetion::PasswordError < Fetion::LoginException; end
 class Fetion::PasswordMaxError < Fetion::LoginException; end
+class Fetion::ChangeMachineError < FetionException; end
 class Fetion::NoNonceException < FetionException; end
 class Fetion::RegisterException < FetionException; end
 class Fetion::SendSmsException < FetionException; end
