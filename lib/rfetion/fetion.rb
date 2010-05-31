@@ -485,6 +485,11 @@ class Fetion
           contact = Fetion::Contact.parse_buddy(buddy)
           @buddy_lists.find {|buddy_list| buddy_list.bid == contact.bid}.add_contact(contact)
         end
+        doc.root.xpath("/results/credentials/credential[@domain='fetion.com.cn']").each do |credential|
+          puts "===========rijndael============"
+          @ssic = rijndael(credential['c'])
+          puts @ssic
+        end
       end
       
       response.body.scan(%r{<events>.*?</events>}).each do |events|
@@ -542,9 +547,10 @@ class Fetion
   end
 
   def rijndael(str)
-    iv = "00399F3D125DB5530AB5E000D6B0F45A"
-    key = "4A026855890197CFDF768597D07200B346F3D676411C6F87368B5C2276DCEDD2"
-    Base64.encode64(Aes.encrypt_buffer(256, 'CBC', key, iv, str))
+    iv = ["00399F3D125DB5530AB5E000D6B0F45A"].pack("H*")
+    key = ["4A026855890197CFDF768597D07200B346F3D676411C6F87368B5C2276DCEDD2"].pack("H*")
+    str = Base64.decode64(str)
+    Base64.encode64([Aes.encrypt_buffer(256, 'CBC', key, iv, str)].pack("A*"))
   end
 
   def machine_code

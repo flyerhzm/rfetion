@@ -584,6 +584,30 @@ EOF
     end
   end
 
+  describe "keep alive" do
+    before :each do
+      @fetion.instance_variable_set(:@seq, 10)
+      @fetion.instance_variable_set(:@alive, 1)
+      @fetion.instance_variable_set(:@sid, "730020377")
+    end
+
+    it "should get credential" do
+      response_body =<<-EOF
+SIP-C/4.0 200 OK
+I: 1
+Q: 3 R
+X: 600
+L: 1143
+
+<results><credentials kernel="CxwSLewY1vVCO6w5I6fr6uKAP/eycAOAU/enGqPYgwMvKFh5flVC8pkH4dnQu8N25LhJR7E/p2xm9EPWYSv6RXPxisY1t368P2YEiOgAezOjsWV7wgb5LvI1EbA/sdtT3xbJJWbrdbQnS3prA0e5q3K/SDK6g/CBNtu0IpOFMofh3SsC2eyKuznzZS+e9W4+"><credential domain="fetion.com.cn" c="CXI7O4YujvQTRiAYfqTW64SHNg7xDsZZ/FnXrYN1ImfeT7dr5IN2OuuiW085FsG97E34Dm6TahNEvGnRsFxJKyv5TZkwPmmZF6pf1UHaHmVhEJzhMr0lQD8wIjtpSDxzQMiAxkuMthLXyUjwVGwZ1ui+X6xVZRP6BodvhvMO5pjIeZOkUzpNl9WRlehg36v0"/><credential domain="m161.com.cn" c="VgHgSWF5crarhBETwnPWzpZlVkjvUROb8kuZt68OWgtLfJ1hc31x1UglB8vk6KcDRWj5ykxzItX1/YD9zMUN05LvGUyeddIFS9KUWLCFCAkpGMyFeHq7OzgSY3oF32xAVqgnkO3YRhvquzp956NXGJhNn8oSgrD1N7n5/64AX18="/><credential domain="www.ikuwa.cn" c="a5hsWG1AUUTyLhCWivFVpXesww8WJmyT6hMmoe71uNj65X+Rh/I8CvL+R3hFDWcqTScVbdcj2Dpx514MYaAorudPS59H643DGvUs6U/bRkf1nuJGMeDLDimZeeNwMlYQJZLQK8msqLOjL7acmftX6ZTiaYOecFNaZp++ctQmfFI="/><credential domain="games.fetion.com.cn" c="af1jFVN4jyOb9gokdHJlIlKXy2m97dNJN2c96jVGEoLXuUPmk4VtgMTVo2J1fArcZoWnR+yPaCNA5XXcgB8paD7jbixwccM7q48JbcHwohX79yzhC+Zo4vSmPKDlLAkBDBuydBSDVyrGEMWadamYky30Qc+HEJvOd5mG3s/apff9IOoEdZDcWNv+/hJwDdVA"/></credentials></results>SIPP
+EOF
+      response_body.gsub!("\n", "\r\n")
+      FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
+      @fetion.keep_alive
+      @fetion.ssic.size.should == 140
+    end
+  end
+
   describe "pulse" do
     before :each do
       @fetion.instance_variable_set(:@seq, 10)
