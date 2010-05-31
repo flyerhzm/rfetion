@@ -173,7 +173,7 @@ class Fetion
       url = FETION_LOGIN_URL.sub('%sid%', @sid).sub('mobileno=%mobileno%', '')
     end
     url.sub!('%digest%', Digest::SHA1.hexdigest("#{DOMAIN}:#{@password}"))
-    url += "&pid=#@pid&pic=#@pic&algorithm=#@algorithm" if @pic
+    url += "&pid=#@pid&pic=#@pic&algorithm=#@algorithm" if @pic and !@pic.empty?
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true

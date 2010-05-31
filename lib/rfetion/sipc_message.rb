@@ -7,7 +7,12 @@ class SipcMessage
 
   def self.register_second(fetion)
     body = %Q|<args><device machine-code="#{fetion.machine_code}" /><caps value="ff" /><events value="7f" /><user-info mobile-no="#{fetion.mobile_no}" user-id="#{fetion.uid}"><personal version="0" attributes="v4default" /><custom-config version="0" /><contact-list version="0"   buddy-attributes="v4default" /></user-info><credentials domains="fetion.com.cn;m161.com.cn;www.ikuwa.cn;games.fetion.com.cn" /><presence><basic value="400" desc="" /></presence></args>|
-    sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :A => %Q|Digest response="#{fetion.response}",algorithm="SHA1-sess-v4"|, :AK => 'ak-value', :body => body)
+    if fetion.pic and !fetion.pic.empty?
+      verify = %Q|Verify response="#{fetion.pic}",algorithm="#{fetion.algorithm}",type="GeneralPic",chid="#{fetion.pid}"|
+      sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :A => [%Q|Digest response="#{fetion.response}",algorithm="SHA1-sess-v4"|, verify], :AK => 'ak-value', :body => body)
+    else
+      sipc_create(:command => 'R', :F => fetion.sid, :I => 1, :Q => "#{fetion.next_alive} R", :A => %Q|Digest response="#{fetion.response}",algorithm="SHA1-sess-v4"|, :AK => 'ak-value', :body => body)
+    end
   end
 
   def self.get_group_list(fetion)
@@ -188,9 +193,18 @@ class SipcMessage
       body = options.delete(:body)
       with_l = options.delete(:with_l)
 
-      sorted_key = [:F, :I, :Q, :CN, :CL, :A, :AK, :X, :T, :K, :N, :SV]
+      sorted_key = [:F, :I, :Q, :CN, :CL, :A, :AK, :A, :X, :T, :K, :N, :SV]
       sipc = "#{options.delete(:command)} fetion.com.cn SIP-C/4.0\r\n"
-      sorted_key.each {|k| sipc += "#{k}: #{options[k]}\r\n" if options[k]}
+      sorted_key.each do |k|
+        if options[k]
+          if k == :A
+            value = options[k].is_a?(Array) ? options[k].shift : options.delete(k)
+            sipc += "#{k}: #{value}\r\n"
+          else
+            sipc += "#{k}: #{options[k]}\r\n"
+          end
+        end
+      end
       sipc += "L: #{body == '' ? 4 : body.size}\r\n" if with_l
       sipc += "\r\n#{body}#{Fetion::SIPP}"
       sipc
