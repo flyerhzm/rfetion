@@ -8,8 +8,6 @@ require 'digest/sha1'
 require 'digest/md5'
 require 'macaddr'
 require 'openssl'
-require 'base64'
-require 'ruby-aes'
 require 'logger'
 require 'json'
 
@@ -540,13 +538,6 @@ class Fetion
     rsa_key.n = modulus
 
     rsa_key.public_encrypt(str).unpack("H*").first.upcase
-  end
-
-  def rijndael(str)
-    iv = ["00399F3D125DB5530AB5E000D6B0F45A"].pack("H*")
-    key = ["4A026855890197CFDF768597D07200B346F3D676411C6F87368B5C2276DCEDD2"].pack("H*")
-    str = Base64.decode64(str)
-    Base64.encode64([Aes.encrypt_buffer(256, 'CBC', key, iv, str)].pack("A*"))
   end
 
   def machine_code
