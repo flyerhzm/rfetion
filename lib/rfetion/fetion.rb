@@ -386,9 +386,7 @@ class Fetion
     raise Fetion::PasswordError.new('帐号或密码不正确') if Net::HTTPUnauthorized === response
     raise Fetion::PasswordMaxError.new('您已连续输入错误密码，为了保障您的帐户安全，请输入图形验证码：') if Net::HTTPClientError === response
     raise Fetion::LoginException.new('Login failed.') unless Net::HTTPSuccess === response
-    raise Fetion::LoginException.new('No ssic found in cookie.') unless response['set-cookie'] =~ /ssic=(.*);/
 
-    @ssic = $1
     @logger.debug response.body
     doc = Nokogiri::XML(response.body)
     results = doc.root
@@ -400,6 +398,9 @@ class Fetion
     @uid = user['user-id']
     if @uri =~ /sip:(\d+)@(.+);/
       @sid = $1
+    end
+    doc.root.xpath("/results/user/credentials/credential[@domain='fetion.com.cn']").each do |credential|
+      @ssic = credential['c']
     end
 
     @logger.debug "ssic: " + @ssic
@@ -484,11 +485,6 @@ class Fetion
         doc.root.xpath("/results/user-info/contact-list/buddies/b").each do |buddy|
           contact = Fetion::Contact.parse_buddy(buddy)
           @buddy_lists.find {|buddy_list| buddy_list.bid == contact.bid}.add_contact(contact)
-        end
-        doc.root.xpath("/results/credentials/credential[@domain='fetion.com.cn']").each do |credential|
-          puts "===========rijndael============"
-          @ssic = rijndael(credential['c'])
-          puts @ssic
         end
       end
       

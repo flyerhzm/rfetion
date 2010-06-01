@@ -62,7 +62,7 @@ describe Fetion do
       @fetion.mobile_no.should == "15800681509"
       @fetion.uid.should == "390937727"
       @fetion.sid.should == "730020377"
-      @fetion.ssic.should == "DhIOAADVEY68pV4EcRHsJ/GIIeltaYJsYJR2pj7b2+hCYLtgUd2j2mFaOqoqR98S3dm5pPH9t7W1yH5Cp/lVRP6VTwpLVvwxhhvj8qDz/p8rrW/Ljor6P4ZQKUZYz80JHjMt8R4AAA=="
+      @fetion.ssic.should == "CBIOAAAm+FiuQgpcnFi+B4PZgtvTLcLwrzk84mf5XsP9hnneRVyMvEFuPpvTyfV2FFZfhJrCoiLYptvuSd9M95fwTUj4jRE6NuiE43EPl220u/chMyebsSbsUDxSjuJh1hXV76sAAA=="
     end
 
     it "should login failed with wrong password" do
@@ -90,14 +90,7 @@ describe Fetion do
       @fetion.mobile_no.should == "15800681509"
       @fetion.uid.should == "390937727"
       @fetion.sid.should == "730020377"
-      @fetion.ssic.should == "DhIOAADVEY68pV4EcRHsJ/GIIeltaYJsYJR2pj7b2+hCYLtgUd2j2mFaOqoqR98S3dm5pPH9t7W1yH5Cp/lVRP6VTwpLVvwxhhvj8qDz/p8rrW/Ljor6P4ZQKUZYz80JHjMt8R4AAA=="
-    end
-
-    it "should get login exception without ssic" do
-      @fetion.mobile_no = '15800681509'
-      @fetion.password = 'password'
-      FakeWeb.register_uri(:get, 'https://uid.fetion.com.cn/ssiportal/SSIAppSignInV4.aspx?mobileno=15800681509&domains=fetion.com.cn;m161.com.cn;www.ikuwa.cn&v4digest-type=1&v4digest=79cd56b93f21298dc8ae9d26de1258e3d6ce85a7', :body => %Q|<?xml version="1.0" encoding="utf-8" ?><results status-code="200"><user uri="sip:730020377@fetion.com.cn;p=6907" mobile-no="15800681509" user-status="101" user-id="390937727"><credentials><credential domain="fetion.com.cn" c="CBIOAAAm+FiuQgpcnFi+B4PZgtvTLcLwrzk84mf5XsP9hnneRVyMvEFuPpvTyfV2FFZfhJrCoiLYptvuSd9M95fwTUj4jRE6NuiE43EPl220u/chMyebsSbsUDxSjuJh1hXV76sAAA==" /><credential domain="m161.com.cn" c="CBAOAADowH3pYcBkGIkxcH56EXCIPEJmZ2EXyUKNoOM2xqaJ33i9d5fKaMYY9N7irpMmffobHQws5Eekiz/h+v9nuc3v6zzO8Pd0lIXzutXwzXCROw==" /><credential domain="www.ikuwa.cn" c="ChAOAABbuQDP66jvw7EVpUEjmgWcX/m+qx1KjApplisfSwro1Wp7Aj6Ngu6goEMEx4SHBj+ID4pf+shcudvrfr4C2fUJnmwovu4HZ3+Y1MvS96TtUQ==" /></credentials></user></results>|)
-      lambda { @fetion.login }.should raise_exception(Fetion::LoginException)
+      @fetion.ssic.should == "CBIOAAAm+FiuQgpcnFi+B4PZgtvTLcLwrzk84mf5XsP9hnneRVyMvEFuPpvTyfV2FFZfhJrCoiLYptvuSd9M95fwTUj4jRE6NuiE43EPl220u/chMyebsSbsUDxSjuJh1hXV76sAAA=="
     end
   end
 
@@ -604,7 +597,6 @@ EOF
       response_body.gsub!("\n", "\r\n")
       FakeWeb.register_uri(:post, "http://221.176.31.39/ht/sd.aspx?t=s&i=11", :body => response_body)
       @fetion.keep_alive
-      @fetion.ssic.size.should == 140
     end
   end
 
